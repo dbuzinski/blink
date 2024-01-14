@@ -1,2 +1,7 @@
 .buildtool
+*.mexa64
+*.mexw64
+*.mexmaci64
+*.mexmaca64
 .DS_Store
+
