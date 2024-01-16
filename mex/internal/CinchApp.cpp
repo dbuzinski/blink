@@ -1,6 +1,47 @@
 #include "CinchApp.h"
-#include "mex.h"
 
+
+std::unordered_map<std::string, std::string> parseHeaders(auto request) {
+    std::unordered_map<std::string, std::string> headersMap;
+    for (auto [key, value] : *request) {
+        headersMap.insert({std::string(key), std::string(value)});
+    }
+    return headersMap;
+};
+
+mxArray* mapToStruct(std::unordered_map<std::string, std::string> map) {
+    mwSize dims[2] = {1, 1};
+    const char **fieldNames = new const char *[map.size()];
+    int i = 0;
+    for (auto &kv : map) {
+        fieldNames[i] = kv.first.c_str();
+        i++;
+    }
+    mxArray *structArray = mxCreateStructArray(2, dims, map.size(), fieldNames);
+    for (auto &kv : map) {
+        mxArray *value = mxCreateString(kv.second.c_str());
+        mxSetField(structArray, 0, kv.first.c_str(), value);
+    }
+    return structArray;
+}
+
+mxArray* createCinchRequest(std::string_view url, std::string_view query, std::string_view path, std::unordered_map<std::string, std::string> headers) {
+    mwSize dims[2] = {1, 1};
+    const char* fieldNames[] = {"Parameters", "Query", "Headers", "Data"};
+    mxArray* request = mxCreateStructArray(2, dims, 4, fieldNames);
+
+    std::unordered_map<std::string, std::string> queryMap = parseQuery(query);
+    std::unordered_map<std::string, std::string> paramsMap = parseParams(url, path);
+    mxArray* queryStruct = mapToStruct(queryMap);
+    mxArray* paramsStruct = mapToStruct(paramsMap);
+    mxArray* headersStruct = mapToStruct(headers);
+
+    mxSetField(request, 0, "Data", mxCreateString(""));
+    mxSetField(request, 0, "Query", queryStruct);
+    mxSetField(request, 0, "Parameters", paramsStruct);
+    mxSetField(request, 0, "Headers", headersStruct);
+    return request;
+};
 
 void CinchApp::addRoutes(const mxArray *routes) {
     if (!mxIsClass(routes, "cinch.Route")) {
@@ -13,58 +54,20 @@ void CinchApp::addRoutes(const mxArray *routes) {
     for (int i = 0; i < numRoutes; ++i) {
         mxArray *pathField = mxGetProperty(routes, i, "Path");
         mxArray *handlerField = mxGetProperty(routes, i, "Handler");
-
-        if (!mxIsChar(pathField) || !mxIsFunctionHandle(handlerField)) {
-            mexErrMsgIdAndTxt("cinch:serve:invalidProperty",
-                              "Path must be a string, and Handler must be a function handle.");
-        }
+        // mxArray *httpMethodField = mxGetProperty(routes, i, "HttpMethod");
 
         char *path = mxArrayToString(pathField);
 
         ws.get(path, [handlerField, path](auto *res, auto *req) {
+            std::string_view query = req->getQuery();
+            std::string_view url = req->getUrl();
+            std::unordered_map<std::string, std::string> headers = parseHeaders(req);
             mxArray *lhs[1];
             mxArray *rhs[2];
             rhs[0] = handlerField;
-
-            auto query = req->getQuery();
-            auto queryMap = parseQuery(query);
-
-            mwSize dims[2] = {1, 1};
-            const char* fieldNames[] = {"query", "params"};
-            rhs[1] = mxCreateStructArray(2, dims, 2, fieldNames);
-
-            const char **queryFieldNames = new const char *[queryMap.size()];
-            int i = 0;
-            for (auto &kv : queryMap) {
-                queryFieldNames[i] = kv.first.c_str();
-                i++;
-            }
-            mxArray *queryStruct = mxCreateStructArray(2, dims, queryMap.size(), queryFieldNames);
-            for (auto &kv : queryMap) {
-                mxArray *value = mxCreateString(kv.second.c_str());
-                mxSetField(queryStruct, 0, kv.first.c_str(), value);
-            }
-    
-            auto url = req->getUrl();
-            auto paramsMap = parseParams(url, path);
-            const char **paramsFieldNames = new const char *[paramsMap.size()];
-            int j = 0;
-            for (auto &kv : paramsMap) {
-                paramsFieldNames[j] = kv.first.c_str();
-                j++;
-            }
-            mxArray *paramsStruct = mxCreateStructArray(2, dims, paramsMap.size(), paramsFieldNames);
-            for (auto &kv : paramsMap) {
-                mxArray *value = mxCreateString(kv.second.c_str());
-                mxSetField(paramsStruct, 0, kv.first.c_str(), value);
-            }
-
-            // Set the field names for the outer struct
-            mxSetField(rhs[1], 0, "query", queryStruct);
-            mxSetField(rhs[1], 0, "params", paramsStruct);
+            rhs[1] = createCinchRequest(url, query, path, headers);
 
             mexCallMATLAB(1, lhs, 2, rhs, "feval");
-
 
             if (!mxIsChar(lhs[0])) {
                 mxDestroyArray(lhs[0]);
@@ -78,7 +81,7 @@ void CinchApp::addRoutes(const mxArray *routes) {
             mxDestroyArray(rhs[1]);
 
             res->write(strResult);
-            res->end("");
+            res->end();
         });
     }
 };

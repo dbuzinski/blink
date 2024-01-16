@@ -1,23 +1,25 @@
 app = cinch.App();
 
-app.get("/hello", @hello);
+app.get("/hello/:name", @hello);
+app.get("/greet", @greet);
+app.get("/data", @data);
 
 port = 8000;
 fprintf("Listening on port: %d\n", port);
 app.serve(Port=port)
 
-function resp = hello(~)
-resp = '<h1>Hello World!</h1>';
+function resp = hello(req)
+resp = sprintf('<h1>Hello %s!</h1>', req.Parameters.name);
 end
 
-% function resp = greet(req)
-% resp = sprintf('<h1>Hi %s!</h1>', req.params.name);
-% end
-% 
-% 
-% function resp = data(~)
-% user.id = 1;
-% user.username = "davidb";
-% user.name = "David Buzinski";
-% resp = jsonencode(user);
-% end
+function resp = greet(req)
+resp = sprintf('<h1>Greetings %s!</h1>', req.Query.name);
+end
+
+
+function resp = data(~)
+user.id = 1;
+user.username = "davidb";
+user.name = "David Buzinski";
+resp = jsonencode(user);
+end

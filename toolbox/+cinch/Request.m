@@ -1,8 +1,8 @@
 classdef Request
     properties
-        Data
-        Headers
-        Parameters
-        Query
+        Parameters (1,1) struct
+        Query (1,1) struct
+        Headers (1,1) struct
+        Data string {mustBeScalarOrEmpty}
     end
 end

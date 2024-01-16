@@ -1,4 +1,5 @@
-#include "RequestParser.h"
+#include "parsing.h"
+
 
 std::unordered_map<std::string, std::string> parseQuery(const std::string_view queryString) {
     std::unordered_map<std::string, std::string> queryMap;
@@ -59,3 +60,4 @@ std::unordered_map<std::string, std::string> parseParams(const std::string_view 
 
     return paramsMap;
 };
+
