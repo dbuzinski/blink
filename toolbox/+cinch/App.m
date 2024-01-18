@@ -14,22 +14,22 @@ classdef App < handle
         end
 
         function app = get(app, path, handler)
-            route = cinch.Route(cinch.HttpMethod.GET, path, handler);
+            route = cinch.Route("GET", path, handler);
             app.Routes = [app.Routes route];
         end
 
         function app = post(app, path, handler)
-            route = cinch.Route(cinch.HttpMethod.POST, path, handler);
+            route = cinch.Route("POST", path, handler);
             app.Routes = [app.Routes route];
         end
 
         function app = put(app, path, handler)
-            route = cinch.Route(cinch.HttpMethod.PUT, path, handler);
+            route = cinch.Route("PUT", path, handler);
             app.Routes = [app.Routes route];
         end
 
         function app = delete(app, path, handler)
-            route = cinch.Route(cinch.HttpMethod.DELETE, path, handler);
+            route = cinch.Route("DELETE", path, handler);
             app.Routes = [app.Routes route];
         end
     end

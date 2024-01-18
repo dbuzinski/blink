@@ -1,6 +1,6 @@
 classdef Route
     properties
-        HttpMethod (1,1) cinch.HttpMethod
+        HttpMethod (1,:) char
         Path (1,:) char
         Handler function_handle {mustBeScalarOrEmpty}
     end
@@ -8,7 +8,7 @@ classdef Route
     methods
         function route = Route(method, path, handler)
             arguments
-                method (1,1) cinch.HttpMethod
+                method (1,:) char {mustBeMember(method, {'GET','POST','PUT', 'DELETE'})}
                 path (1,:) char
                 handler (1,1) function_handle
             end
