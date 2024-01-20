@@ -1,6 +1,6 @@
 classdef Response
     properties
-        Data
-        StatusCode
+        Data (1,:) char
+        StatusCode (1,1) int16 = 200
     end
 end

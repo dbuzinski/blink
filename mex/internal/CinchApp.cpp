@@ -26,43 +26,57 @@ mxArray* mapToStruct(std::unordered_map<std::string, std::string> map) {
 }
 
 mxArray* createCinchRequest(std::string_view url, std::string_view query, std::string_view path, std::unordered_map<std::string, std::string> headers, std::string data) {
-    mwSize dims[2] = {1, 1};
-    const char* fieldNames[] = {"Parameters", "Query", "Headers", "Data"};
-    mxArray* request = mxCreateStructArray(2, dims, 4, fieldNames);
-
     std::unordered_map<std::string, std::string> queryMap = parseQuery(query);
     std::unordered_map<std::string, std::string> paramsMap = parseParams(url, path);
     mxArray* queryStruct = mapToStruct(queryMap);
     mxArray* paramsStruct = mapToStruct(paramsMap);
     mxArray* headersStruct = mapToStruct(headers);
 
-    mxSetField(request, 0, "Query", queryStruct);
-    mxSetField(request, 0, "Parameters", paramsStruct);
-    mxSetField(request, 0, "Headers", headersStruct);
-    mxSetField(request, 0, "Data", mxCreateString(data.c_str()));
-    return request;
+    // Create Request object
+    mxArray *lhs[1];
+    mxArray *rhs[4];
+    rhs[0] = paramsStruct;
+    rhs[1] = queryStruct;
+    rhs[2] = headersStruct;
+    rhs[3] = mxCreateString(data.c_str());
+    mexCallMATLAB(1, lhs, 4, rhs, "cinch.Request");
+
+    return lhs[0];
 };
 
-void apply_handler(auto res, auto req, mxArray *handler, auto request) {
+mxArray* createCinchResponse() {
+    // Create Response object
     mxArray *lhs[1];
-    mxArray *rhs[2];
+    mexCallMATLAB(1, lhs, 0, nullptr, "cinch.Response");
+
+    return lhs[0];
+};
+
+void apply_handler(auto res, auto req, mxArray *handler, auto request, auto response) {
+    mxArray *lhs[1];
+    mxArray *rhs[3];
     rhs[0] = handler;
     rhs[1] = request;
+    rhs[2] = response;
 
-    mexCallMATLAB(1, lhs, 2, rhs, "feval");
+    mexCallMATLAB(1, lhs, 3, rhs, "feval");
 
-    if (!mxIsChar(lhs[0])) {
-        mxDestroyArray(lhs[0]);
-        mxDestroyArray(rhs[1]);
-        mexErrMsgIdAndTxt("cinch:serve:invalidResult",
-                            "Handler must return a string.");
-    }
+    mxArray *data = mxGetProperty(lhs[0], 0, "Data");
+    mxArray *statusCodeField = mxGetProperty(lhs[0], 0, "StatusCode");
 
-    const char *strResult = mxArrayToString(lhs[0]);
+    char *strResult = mxArrayToString(data);
+    int statusCodeResult = static_cast<int>(mxGetScalar(statusCodeField));
+
+    // convert int statusCodeResult to string_view
+    std::string statusCodeStr = std::to_string(statusCodeResult);
+    std::string_view statusCode(statusCodeStr.data(), statusCodeStr.size());
+
+    res->writeStatus(statusCodeStr);
+    res->end(strResult);
+
     mxDestroyArray(lhs[0]);
     mxDestroyArray(rhs[1]);
-
-    res->end(strResult);
+    mxDestroyArray(rhs[2]);
 };
 
 void handle_request(auto res, auto req, char *path, mxArray *handler) {
@@ -75,13 +89,15 @@ void handle_request(auto res, auto req, char *path, mxArray *handler) {
             if (bodyBuffer) {
                 bodyBuffer->append(chunk);
                 mxArray *request = createCinchRequest(url, query, path, headers, *bodyBuffer);
-                apply_handler(res, req, handler, request);
+                mxArray *response = createCinchResponse();
+                apply_handler(res, req, handler, request, response);
                 delete bodyBuffer;
             } else {
                 bodyBuffer = new std::string;
                 bodyBuffer->append(chunk);
                 mxArray *request = createCinchRequest(url, query, path, headers, *bodyBuffer);
-                apply_handler(res, req, handler, request);
+                mxArray *response = createCinchResponse();
+                apply_handler(res, req, handler, request, response);
                 delete bodyBuffer;
             }
         } else {
