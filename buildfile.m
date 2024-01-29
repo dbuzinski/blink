@@ -14,7 +14,7 @@ plan("mex") = MexTask([plan("buildDeps").Outputs.paths, "mex/internal/*.cpp"], .
     Dependencies="buildDeps");
 plan("test") = TestTask("tests");
 
-plan.DefaultTasks = "mex";
+plan.DefaultTasks = ["lint" "mex" "test"];
 end
 
 function buildDepsTask(~)

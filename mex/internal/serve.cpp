@@ -3,9 +3,9 @@
 
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-    if (nrhs != 2) {
+    if (nrhs < 2) {
         mexErrMsgIdAndTxt("MATLAB:myfunction:invalidNumInputs",
-                          "Two input arguments (port number and routes) are required.");
+                          "At least two input arguments (port number and routes) are required.");
     }
 
     if (!mxIsDouble(prhs[0]) || mxIsComplex(prhs[0]) || mxGetNumberOfElements(prhs[0]) != 1 ||
@@ -22,6 +22,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     CinchApp app;
     double port = mxGetScalar(prhs[0]);
     app.addRoutes(prhs[1]);
+    if (nrhs == 4) {
+        char *staticFiles = mxArrayToString(prhs[2]);
+        char *staticRoute = mxArrayToString(prhs[3]);
+        app.addStaticFiles(staticFiles, staticRoute);
+    }
     app.ws.listen(static_cast<int>(port), [](auto *listen_socket) {}).run();
 
     std::cout << "Failed to start webserver" << static_cast<int>(port) << std::endl;

@@ -1,7 +1,8 @@
 classdef App < handle
     properties
-        Config (1,1) cinch.Config
         Routes (1,:) cinch.Route = cinch.Route.empty()
+        StaticFiles (1,:) char
+        StaticRoute (1,:) char = '/static'
     end
 
     methods
@@ -10,7 +11,11 @@ classdef App < handle
                 app
                 options.Port = 5000
             end
-            cinch.internal.serve(options.Port, app.Routes);
+            if ~isempty(app.StaticFiles)
+                cinch.internal.serve(options.Port, app.Routes, app.StaticFiles, app.StaticRoute);
+            else
+                cinch.internal.serve(options.Port, app.Routes);
+            end
         end
 
         function app = get(app, path, handler)

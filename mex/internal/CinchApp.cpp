@@ -113,6 +113,41 @@ void handle_request(auto res, auto req, char *path, mxArray *handler) {
     });
 };
 
+void CinchApp::addStaticFiles(std::string staticFiles, std::string staticRoute) {
+    // add leading and trailing slashes if not present
+    if (staticRoute.front() != '/') {
+        staticRoute.insert(0, "/");
+    }
+    if (staticRoute.back() != '/') {
+        staticRoute.append("/");
+    }
+    ws.get(staticRoute + "*", [staticFiles, staticRoute](auto *res, auto *req) {
+        std::string filePath = staticFiles + std::string(req->getUrl().begin(), req->getUrl().end()).substr(staticRoute.length() - 1);
+        if (std::filesystem::exists(filePath) && std::filesystem::is_regular_file(filePath)) {
+            std::ifstream fileStream(filePath, std::ios::binary);
+
+            if (fileStream.is_open()) {
+                fileStream.seekg(0, std::ios::end);
+                size_t fileSize = fileStream.tellg();
+                fileStream.seekg(0, std::ios::beg);
+
+                std::string fileContent(fileSize, ' ');
+                fileStream.read(&fileContent[0], fileSize);
+
+                res->write(fileContent);
+                fileStream.close();
+                res->end();
+            } else {
+                res->writeStatus("500 Internal Server Error");
+                res->end();
+            }
+        } else {
+            res->writeStatus("404 Not Found");
+            res->end("File not found");
+        }
+    });
+};
+
 void CinchApp::addRoutes(const mxArray *routes) {
     if (!mxIsClass(routes, "cinch.Route")) {
         mexErrMsgIdAndTxt("MATLAB:myfunction:invalidInputType",
@@ -149,5 +184,5 @@ void CinchApp::addRoutes(const mxArray *routes) {
             mexErrMsgIdAndTxt("cinch:serve:invalidHttpMethod",
                                 "Invalid HTTP method: %s", httpMethod);
         }
-    }
+   }
 };
