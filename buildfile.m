@@ -19,7 +19,6 @@ end
 
 function buildDepsTask(~)
 % Build uWebSockets dependency
-!git submodule update --init --recursive
 cd mex/include/uWebSockets/uSockets
 !CFLAGS="$CFLAGS -mmacosx-version-min=11.0" make
 cd ..

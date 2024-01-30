@@ -1,5 +1,4 @@
 TODOS:
-* templating?
 * async :(
 * db toolbox integration example
 * multiple handlers?
