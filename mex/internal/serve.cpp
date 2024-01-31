@@ -1,33 +1,46 @@
-#include "mex.h"
-#include "CinchApp.h"
+#include "mex.hpp"
+#include "mexAdapter.hpp"
+#include "CinchApp.hpp"
 
+class MexFunction : public matlab::mex::Function {
+private:
+    std::shared_ptr<matlab::engine::MATLABEngine> matlabPtr = getEngine();
+    matlab::data::ArrayFactory factory;
+public:
+    void operator()(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs) {
+        if (inputs.size() < 2) {
+            matlabPtr->feval(u"error", 0,
+                std::vector<matlab::data::Array>({
+                    factory.createScalar("At least two input arguments (port number and routes) are required.")
+            }));
+            return;
+        }
 
-void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-    if (nrhs < 2) {
-        mexErrMsgIdAndTxt("MATLAB:myfunction:invalidNumInputs",
-                          "At least two input arguments (port number and routes) are required.");
+        if (inputs[0].getType() != matlab::data::ArrayType::DOUBLE) {
+            matlabPtr->feval(u"error", 0,
+                std::vector<matlab::data::Array>({
+                    factory.createScalar("Port number must be a positive integer.")
+            }));
+            return;
+        }
+
+        if (inputs[1].getType() != matlab::data::ArrayType::VALUE_OBJECT) {
+            matlabPtr->feval(u"error", 0,
+                std::vector<matlab::data::Array>({
+                    factory.createScalar("Routes must be an array of 'cinch.Route' objects.")
+            }));
+            return;
+        }
+
+        CinchApp app = CinchApp(matlabPtr);
+        double port = inputs[0][0];
+        app.addRoutes(inputs[1]);
+        if (inputs.size() == 4) {
+            std::string staticFiles = static_cast<matlab::data::CharArray>(inputs[2]).toAscii();
+            std::string staticRoute = static_cast<matlab::data::CharArray>(inputs[3]).toAscii();
+            app.addStaticFiles(staticFiles, staticRoute);
+        }
+        app.ws.listen(static_cast<int>(port), [](auto *listen_socket) {}).run();
+        std::cout << "Failed to start webserver" << std::endl;
     }
-
-    if (!mxIsDouble(prhs[0]) || mxIsComplex(prhs[0]) || mxGetNumberOfElements(prhs[0]) != 1 ||
-        mxGetScalar(prhs[0]) < 0) {
-        mexErrMsgIdAndTxt("MATLAB:myfunction:invalidInputType",
-                          "Port number must be a positive integer.");
-    }
-
-    if (!mxIsClass(prhs[1], "cinch.Route")) {
-        mexErrMsgIdAndTxt("MATLAB:myfunction:invalidInputType",
-                          "Routes must be an array of 'cinch.Route' objects.");
-    }
-
-    CinchApp app;
-    double port = mxGetScalar(prhs[0]);
-    app.addRoutes(prhs[1]);
-    if (nrhs == 4) {
-        char *staticFiles = mxArrayToString(prhs[2]);
-        char *staticRoute = mxArrayToString(prhs[3]);
-        app.addStaticFiles(staticFiles, staticRoute);
-    }
-    app.ws.listen(static_cast<int>(port), [](auto *listen_socket) {}).run();
-
-    std::cout << "Failed to start webserver" << static_cast<int>(port) << std::endl;
-}
+};

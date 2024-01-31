@@ -5,6 +5,9 @@ classdef Response
     end
 
     methods
+        function resp = Response(varargin)
+        end
+        
         function resp = render(resp, template, context)
             arguments
                 resp

@@ -1,4 +1,4 @@
-#include "parsing.h"
+#include "parsing.hpp"
 
 
 std::unordered_map<std::string, std::string> parseQuery(const std::string_view queryString) {

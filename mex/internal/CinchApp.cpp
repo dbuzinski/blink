@@ -1,5 +1,9 @@
-#include "CinchApp.h"
+#include "CinchApp.hpp"
 
+
+CinchApp::CinchApp(std::shared_ptr<matlab::engine::MATLABEngine> matlabPtr) {
+    this->matlabPtr = matlabPtr;
+};
 
 std::unordered_map<std::string, std::string> parseHeaders(auto request) {
     std::unordered_map<std::string, std::string> headersMap;
@@ -9,95 +13,66 @@ std::unordered_map<std::string, std::string> parseHeaders(auto request) {
     return headersMap;
 };
 
-mxArray* mapToStruct(std::unordered_map<std::string, std::string> map) {
-    mwSize dims[2] = {1, 1};
-    const char **fieldNames = new const char *[map.size()];
-    int i = 0;
-    for (auto &kv : map) {
-        fieldNames[i] = kv.first.c_str();
-        i++;
+matlab::data::Array mapToStruct(std::unordered_map<std::string, std::string> map) {
+    matlab::data::ArrayFactory factory;
+    std::vector<std::string> fieldNames;
+    for (auto const &[key, value] : map) {
+        fieldNames.push_back(key);
     }
-    mxArray *structArray = mxCreateStructArray(2, dims, map.size(), fieldNames);
-    for (auto &kv : map) {
-        mxArray *value = mxCreateString(kv.second.c_str());
-        mxSetField(structArray, 0, kv.first.c_str(), value);
+    matlab::data::StructArray structArray = factory.createStructArray({1, 1}, fieldNames);
+    for (auto const &[key, value] : map) {
+        structArray[0][key] = factory.createCharArray(value.c_str());
     }
     return structArray;
-}
+};
 
-mxArray* createCinchRequest(std::string_view url, std::string_view query, std::string_view path, std::unordered_map<std::string, std::string> headers, std::string data) {
+void CinchApp::apply_handler(auto res, auto req, const char *path, const char *bodyBuffer, const matlab::data::Array &handler) {
+    std::string_view query = req->getQuery();
+    std::string_view url = req->getUrl();
+
     std::unordered_map<std::string, std::string> queryMap = parseQuery(query);
     std::unordered_map<std::string, std::string> paramsMap = parseParams(url, path);
-    mxArray* queryStruct = mapToStruct(queryMap);
-    mxArray* paramsStruct = mapToStruct(paramsMap);
-    mxArray* headersStruct = mapToStruct(headers);
+    std::unordered_map<std::string, std::string> headersMap = parseHeaders(req);
 
-    // Create Request object
-    mxArray *lhs[1];
-    mxArray *rhs[4];
-    rhs[0] = paramsStruct;
-    rhs[1] = queryStruct;
-    rhs[2] = headersStruct;
-    rhs[3] = mxCreateString(data.c_str());
-    mexCallMATLAB(1, lhs, 4, rhs, "cinch.Request");
+    matlab::data::Array queryStruct = mapToStruct(queryMap);
+    matlab::data::Array paramsStruct = mapToStruct(paramsMap);
+    matlab::data::Array headersStruct = mapToStruct(headersMap);
+    matlab::data::CharArray body = factory.createCharArray(bodyBuffer);
 
-    return lhs[0];
-};
+    std::vector<matlab::data::Array> reqArgs({paramsStruct, queryStruct, headersStruct, body});
+    matlab::data::Array request = matlabPtr->feval("cinch.Request", reqArgs);
 
-mxArray* createCinchResponse() {
-    // Create Response object
-    mxArray *lhs[1];
-    mexCallMATLAB(1, lhs, 0, nullptr, "cinch.Response");
+    matlab::data::Array response = matlabPtr->feval("cinch.Response", factory.createEmptyArray());
 
-    return lhs[0];
-};
-
-void apply_handler(auto res, auto req, mxArray *handler, auto request, auto response) {
-    mxArray *lhs[1];
-    mxArray *rhs[3];
-    rhs[0] = handler;
-    rhs[1] = request;
-    rhs[2] = response;
-
-    mexCallMATLAB(1, lhs, 3, rhs, "feval");
-
-    mxArray *data = mxGetProperty(lhs[0], 0, "Data");
-    mxArray *statusCodeField = mxGetProperty(lhs[0], 0, "StatusCode");
-
-    char *strResult = mxArrayToString(data);
-    int statusCodeResult = static_cast<int>(mxGetScalar(statusCodeField));
+    std::vector<matlab::data::Array> handlerArgs({handler, request, response});
+    matlab::data::Array handlerResp = matlabPtr->feval("feval", handlerArgs);
+    matlab::data::CharArray respData = matlabPtr->getProperty(handlerResp, "Data");
+    matlab::data::Array respStatus = matlabPtr->getProperty(handlerResp, "StatusCode");
 
     // convert int statusCodeResult to string_view
+    int statusCodeResult = static_cast<int>(respStatus[0]);
     std::string statusCodeStr = std::to_string(statusCodeResult);
     std::string_view statusCode(statusCodeStr.data(), statusCodeStr.size());
 
     res->writeStatus(statusCodeStr);
-    res->end(strResult);
-
-    mxDestroyArray(lhs[0]);
-    mxDestroyArray(rhs[1]);
-    mxDestroyArray(rhs[2]);
+    res->end(respData.toAscii());
 };
 
-void handle_request(auto res, auto req, char *path, mxArray *handler) {
+void CinchApp::handle_request(auto res, auto req, const char *path, const matlab::data::Array &handler) {
     auto isAborted = std::make_shared<bool>(false);
     std::string_view query = req->getQuery();
     std::string_view url = req->getUrl();
     std::unordered_map<std::string, std::string> headers = parseHeaders(req);
-    res->onData([req, res, isAborted, handler, url, query, path, headers, bodyBuffer = (std::string *)nullptr](std::string_view chunk, bool isLast) mutable {
+    res->onData([this, req, res, handler, isAborted, path, headers, bodyBuffer = (std::string *)nullptr](std::string_view chunk, bool isLast) mutable {
         if (isLast && !*isAborted) {
             if (bodyBuffer) {
                 bodyBuffer->append(chunk);
-                mxArray *request = createCinchRequest(url, query, path, headers, *bodyBuffer);
-                mxArray *response = createCinchResponse();
-                apply_handler(res, req, handler, request, response);
+                apply_handler(res, req, path, (*bodyBuffer).c_str(), handler);
                 delete bodyBuffer;
             } else {
                 bodyBuffer = new std::string;
                 bodyBuffer->append(chunk);
-                mxArray *request = createCinchRequest(url, query, path, headers, *bodyBuffer);
-                mxArray *response = createCinchResponse();
-                apply_handler(res, req, handler, request, response);
+                apply_handler(res, req, path, (*bodyBuffer).c_str(), handler);
                 delete bodyBuffer;
             }
         } else {
@@ -106,7 +81,6 @@ void handle_request(auto res, auto req, char *path, mxArray *handler) {
             }
             bodyBuffer->append(chunk);
         }
-
     });
     res->onAborted([isAborted]() {
         *isAborted = true;
@@ -148,41 +122,37 @@ void CinchApp::addStaticFiles(std::string staticFiles, std::string staticRoute) 
     });
 };
 
-void CinchApp::addRoutes(const mxArray *routes) {
-    if (!mxIsClass(routes, "cinch.Route")) {
-        mexErrMsgIdAndTxt("MATLAB:myfunction:invalidInputType",
-                              "Routes must be an array of objects of the 'cinch.Route' class.");
-    }
-
-    int numRoutes = mxGetNumberOfElements(routes);
+void CinchApp::addRoutes(const matlab::data::Array &routes) {
+    int numRoutes = routes.getNumberOfElements();
 
     for (int i = 0; i < numRoutes; ++i) {
-        mxArray *pathField = mxGetProperty(routes, i, "Path");
-        mxArray *handlerField = mxGetProperty(routes, i, "Handler");
-        mxArray *httpMethodField = mxGetProperty(routes, i, "HttpMethod");
+        matlab::data::CharArray pathField = matlabPtr->getProperty(routes, i, "Path");
+        matlab::data::CharArray httpMethodField = matlabPtr->getProperty(routes, i, "HttpMethod");
+        const matlab::data::Array handler = matlabPtr->getProperty(routes, i, "Handler");
 
-        char *path = mxArrayToString(pathField);
-        char *httpMethod = mxArrayToString(httpMethodField);
+        std::string pathStr = pathField.toAscii();
+        std::string httpMethodStr = httpMethodField.toAscii();
+        const char *path = pathStr.c_str();
+        const char *httpMethod = httpMethodStr.c_str();
 
         if (strcmp(httpMethod, "GET") == 0) {
-            ws.get(path, [handlerField, path](auto *res, auto *req) {
-                handle_request(res, req, path, handlerField);
+            ws.get(path, [this, handler, path](auto *res, auto *req) {
+                handle_request(res, req, path, handler);
             });
         } else if (strcmp(httpMethod, "POST") == 0) {
-            ws.post(path, [path, handlerField](auto *res, auto *req) {
-                handle_request(res, req, path, handlerField);
+            ws.post(path, [this, path, handler](auto *res, auto *req) {
+                handle_request(res, req, path, handler);
             });
         } else if (strcmp(httpMethod, "PUT") == 0) {
-            ws.put(path, [path, handlerField](auto *res, auto *req) {
-                handle_request(res, req, path, handlerField);
+            ws.put(path, [this, path, handler](auto *res, auto *req) {
+                handle_request(res, req, path, handler);
             });
         } else if (strcmp(httpMethod, "DELETE") == 0) {
-            ws.del(path, [path, handlerField](auto *res, auto *req) {
-                handle_request(res, req, path, handlerField);
+            ws.del(path, [this, path, handler](auto *res, auto *req) {
+                handle_request(res, req, path, handler);
             });
         } else {
-            mexErrMsgIdAndTxt("cinch:serve:invalidHttpMethod",
-                                "Invalid HTTP method: %s", httpMethod);
+            std::cout << "Invalid HTTP method: " << httpMethod << std::endl;
         }
    }
 };
