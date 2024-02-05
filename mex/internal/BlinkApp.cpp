@@ -1,7 +1,7 @@
-#include "CinchApp.hpp"
+#include "BlinkApp.hpp"
 
 
-CinchApp::CinchApp(std::shared_ptr<matlab::engine::MATLABEngine> matlabPtr) {
+BlinkApp::BlinkApp(std::shared_ptr<matlab::engine::MATLABEngine> matlabPtr) {
     this->matlabPtr = matlabPtr;
 };
 
@@ -26,7 +26,7 @@ matlab::data::Array mapToStruct(std::unordered_map<std::string, std::string> map
     return structArray;
 };
 
-void CinchApp::apply_handler(auto res, auto req, const char *path, const char *bodyBuffer, const matlab::data::Array &handler) {
+void BlinkApp::apply_handler(auto res, auto req, const char *path, const char *bodyBuffer, const matlab::data::Array &handler) {
     std::string_view query = req->getQuery();
     std::string_view url = req->getUrl();
 
@@ -40,9 +40,9 @@ void CinchApp::apply_handler(auto res, auto req, const char *path, const char *b
     matlab::data::CharArray body = factory.createCharArray(bodyBuffer);
 
     std::vector<matlab::data::Array> reqArgs({paramsStruct, queryStruct, headersStruct, body});
-    matlab::data::Array request = matlabPtr->feval("cinch.Request", reqArgs);
+    matlab::data::Array request = matlabPtr->feval("blink.Request", reqArgs);
 
-    matlab::data::Array response = matlabPtr->feval("cinch.Response", factory.createEmptyArray());
+    matlab::data::Array response = matlabPtr->feval("blink.Response", factory.createEmptyArray());
 
     std::vector<matlab::data::Array> handlerArgs({handler, request, response});
     matlab::data::Array handlerResp = matlabPtr->feval("feval", handlerArgs);
@@ -58,7 +58,7 @@ void CinchApp::apply_handler(auto res, auto req, const char *path, const char *b
     res->end(respData.toAscii());
 };
 
-void CinchApp::handle_request(auto res, auto req, const char *path, const matlab::data::Array &handler) {
+void BlinkApp::handle_request(auto res, auto req, const char *path, const matlab::data::Array &handler) {
     auto isAborted = std::make_shared<bool>(false);
     std::string_view query = req->getQuery();
     std::string_view url = req->getUrl();
@@ -87,7 +87,7 @@ void CinchApp::handle_request(auto res, auto req, const char *path, const matlab
     });
 };
 
-void CinchApp::addStaticFiles(std::string staticFiles, std::string staticRoute) {
+void BlinkApp::addStaticFiles(std::string staticFiles, std::string staticRoute) {
     // add leading and trailing slashes if not present
     if (staticRoute.front() != '/') {
         staticRoute.insert(0, "/");
@@ -122,7 +122,7 @@ void CinchApp::addStaticFiles(std::string staticFiles, std::string staticRoute) 
     });
 };
 
-void CinchApp::addRoutes(const matlab::data::Array &routes) {
+void BlinkApp::addRoutes(const matlab::data::Array &routes) {
     int numRoutes = routes.getNumberOfElements();
 
     for (int i = 0; i < numRoutes; ++i) {

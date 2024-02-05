@@ -14,7 +14,7 @@ classdef Response
                 template (1,1) string
                 context (1,1) struct = struct()
             end
-            import cinch.internal.forge.Forge;
+            import blink.internal.forge.Forge;
 
             f = Forge();
             tpl = string(fileread(template));

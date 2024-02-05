@@ -8,9 +8,9 @@
 #include <string>
 
 
-class CinchApp {
+class BlinkApp {
 public:
-    CinchApp(std::shared_ptr<matlab::engine::MATLABEngine> matlabPtr);
+    BlinkApp(std::shared_ptr<matlab::engine::MATLABEngine> matlabPtr);
     uWS::SSLApp ws;
     void addRoutes(const matlab::data::Array& routes);
     void addStaticFiles(std::string staticPath, std::string staticRoute);

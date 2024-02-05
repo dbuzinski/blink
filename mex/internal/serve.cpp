@@ -1,6 +1,6 @@
 #include "mex.hpp"
 #include "mexAdapter.hpp"
-#include "CinchApp.hpp"
+#include "BlinkApp.hpp"
 
 class MexFunction : public matlab::mex::Function {
 private:
@@ -32,7 +32,7 @@ public:
             return;
         }
 
-        CinchApp app = CinchApp(matlabPtr);
+        BlinkApp app = BlinkApp(matlabPtr);
         double port = inputs[0][0];
         app.addRoutes(inputs[1]);
         if (inputs.size() == 4) {

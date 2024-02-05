@@ -1,4 +1,4 @@
-app = cinch.App();
+app = blink.App();
 
 app.get("/hello", @hello);
 port = 8000;
