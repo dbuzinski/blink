@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "dev": "nodemon --watch .. --ignore ../dist -e .m,.mtl,.html,.css --exec 'cd ..; matlab -batch \"buildtool build\"; matlab -batch' start"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.3",
+    "tailwindcss": "^3.4.1"
+  }
+}

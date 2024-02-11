@@ -1,0 +1,11 @@
+<ul id="todoList" class="space-y-2">
+    {for todo=todos}
+        <li id="todo-{todo.id}" class="flex items-center justify-between bg-gray-800 px-4 py-2 rounded-md shadow">
+            <label class="flex items-center">
+                <input type="checkbox" {if todo.completed}checked{end} hx-post="/toggle/{todo.id}" hx-target="#todoList" class="mr-2 form-checkbox h-6 w-6 text-green-500 focus:outline-none focus:ring">
+                <span {if todo.completed}class="line-through"{end}>{todo.text}</span>
+            </label>
+            <button hx-delete="/delete/{todo.id}" hx-swap="outerHTML" hx-target="#todo-{todo.id}" hx-indicator="#loading" hx-trigger="click" class="text-red-500 hover:text-red-600 focus:outline-none focus:ring">X</button>
+        </li>
+    {end}
+</ul>

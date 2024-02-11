@@ -17,6 +17,6 @@ public:
 private:
     matlab::data::ArrayFactory factory;
     std::shared_ptr<matlab::engine::MATLABEngine> matlabPtr;
-    void apply_handler(auto res, auto req, const char *path, const char *bodyBuffer, const matlab::data::Array &handler);
-    void handle_request(auto res, auto req, const char *path, const matlab::data::Array &handler);
+    void apply_handler(auto res, auto req, std::string path, const char *bodyBuffer, const matlab::data::Array &handler);
+    void handle_request(auto res, auto req, std::string path, const matlab::data::Array &handler);
 };

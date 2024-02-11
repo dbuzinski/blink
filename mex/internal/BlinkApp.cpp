@@ -26,7 +26,7 @@ matlab::data::Array mapToStruct(std::unordered_map<std::string, std::string> map
     return structArray;
 };
 
-void BlinkApp::apply_handler(auto res, auto req, const char *path, const char *bodyBuffer, const matlab::data::Array &handler) {
+void BlinkApp::apply_handler(auto res, auto req, std::string path, const char *bodyBuffer, const matlab::data::Array &handler) {
     std::string_view query = req->getQuery();
     std::string_view url = req->getUrl();
 
@@ -58,7 +58,7 @@ void BlinkApp::apply_handler(auto res, auto req, const char *path, const char *b
     res->end(respData.toAscii());
 };
 
-void BlinkApp::handle_request(auto res, auto req, const char *path, const matlab::data::Array &handler) {
+void BlinkApp::handle_request(auto res, auto req, std::string path, const matlab::data::Array &handler) {
     auto isAborted = std::make_shared<bool>(false);
     std::string_view query = req->getQuery();
     std::string_view url = req->getUrl();
@@ -130,9 +130,8 @@ void BlinkApp::addRoutes(const matlab::data::Array &routes) {
         matlab::data::CharArray httpMethodField = matlabPtr->getProperty(routes, i, "HttpMethod");
         const matlab::data::Array handler = matlabPtr->getProperty(routes, i, "Handler");
 
-        std::string pathStr = pathField.toAscii();
+        std::string path = pathField.toAscii();
         std::string httpMethodStr = httpMethodField.toAscii();
-        const char *path = pathStr.c_str();
         const char *httpMethod = httpMethodStr.c_str();
 
         if (strcmp(httpMethod, "GET") == 0) {
