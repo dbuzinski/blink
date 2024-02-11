@@ -1,7 +1,2 @@
-TODOS:
-* async :(
-* db toolbox integration example
-* multiple handlers?
-* middleware?
-* how to handle early bailouts?
-* multithreading?
+# Blink
+Blink is a small but powerful webframework for MATLAB
