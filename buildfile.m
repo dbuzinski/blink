@@ -12,7 +12,7 @@ plan("forge").Outputs = "toolbox/+blink/+internal/Forge.m";
 plan("mex") = MexTask([plan("uWebSockets").Outputs.paths, "mex/internal/*.cpp"], ...
     "toolbox/+blink/+internal", ...
     Filename="serve", ...
-    Options=["CXXFLAGS=''$CXXFLAGS -std=c++20''", "-Iinclude/uWebSockets/src", "-Iinclude/uWebSockets/uSockets/src", "-lz"], ...
+    Options=["CXXFLAGS=''$CXXFLAGS -std=c++20''", "-Iinclude/uWebSockets/src", "-Iinclude/uWebSockets/uSockets/src", "-v", "-lz"], ...
     Dependencies="uWebSockets");
 plan("test") = TestTask("tests");
 plan("test").Dependencies = ["mex" "forge"];
@@ -41,7 +41,7 @@ matlab.addons.toolbox.packageToolbox("BlinkToolbox.prj", ctx.Task.Outputs.Path);
 end
 
 function o = getuSocketsObjFile(p)
-% Transforms each .c src file in uWebSockets into the corresponding .o file
+% Transforms each .c src file in uSockets into the corresponding .o file
 [~, name] = fileparts(p);
 o = "include/uWebSockets/uSockets/"+name+".o";
 end

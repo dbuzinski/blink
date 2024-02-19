@@ -3,7 +3,7 @@ on: [push]
 jobs:
   build:
     name: Build toolbox
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
