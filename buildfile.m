@@ -5,8 +5,9 @@ plan = buildplan(localfunctions);
 
 plan("clean") = CleanTask();
 plan("lint") = CodeIssuesTask(["toolbox" "tests"]);
-plan("uWebSockets").Inputs = ["include/uWebSockets/src" "include/uWebSockets/uSockets/src"];
-plan("uWebSockets").Outputs = "include/uWebSockets/uSockets/*.o";
+
+plan("uWebSockets").Inputs = ["include/uWebSockets/uSockets/src/**/*.c" "include/uWebSockets/src"];
+plan("uWebSockets").Outputs = plan("uWebSockets").Inputs(1).replace("src/","").replace(".c", ".o");
 plan("forge").Inputs = "include/forge/toolbox/Forge.m";
 plan("forge").Outputs = "toolbox/+blink/+internal/Forge.m";
 plan("mex") = MexTask([plan("uWebSockets").Outputs.paths, "mex/internal/*.cpp"], ...
