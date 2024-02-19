@@ -21,17 +21,17 @@ jobs:
         with:
           command: mex -setup c
         env:
-         CC:   gcc-10
-         CXX:  g++-10
+         CC: gcc-10
+         CXX: g++-10
       - name: Setup mex
         uses: matlab-actions/run-command@v2
         with:
           command: mex -setup cpp
         env:
-         CC:   gcc-10
-         CXX:  g++-10
+         CC: gcc-10
+         CXX: g++-10
       - name: Run build
         uses: matlab-actions/run-build@v2
         env:
-         CC:   gcc-10
-         CXX:  g++-10
+         CC: gcc-10
+         CXX: g++-10
