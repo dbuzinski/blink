@@ -20,7 +20,7 @@ end
 end
 
 function todoList = getTodoList
-forge = blink.internal.forge.Forge();
+forge = blink.internal.Forge();
 c = sqlite("app.db");
 todos = sqlread(c, "todos");
 close(c);
