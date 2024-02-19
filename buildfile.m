@@ -25,9 +25,9 @@ end
 function uWebSocketsTask(~)
 % Build uWebSockets dependency
 cd include/uWebSockets/uSockets
-!CFLAGS="$CFLAGS -mmacosx-version-min=11.0" make
+!make
 cd ..
-!CFLAGS="$CFLAGS -mmacosx-version-min=11.0" make default
+!make default
 end
 
 function forgeTask(ctx)
