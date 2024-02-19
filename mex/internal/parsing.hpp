@@ -1,6 +1,7 @@
 #pragma once
 #include<string>
 #include <iostream>
+#include <unordered_map>
 
 
 std::unordered_map<std::string, std::string> parseQuery(const std::string_view queryString);
