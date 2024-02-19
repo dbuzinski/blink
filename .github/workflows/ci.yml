@@ -12,8 +12,8 @@ jobs:
       - name: Install compiler dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install gcc-11 gcc-11-base gcc-11-doc g++-11
-          sudo apt-get install libstdc++-11-dev libstdc++-11-doc
+          sudo apt-get install -y gcc-11 gcc-11-base gcc-11-doc g++-11
+          sudo apt-get install -y libstdc++-11-dev libstdc++-11-doc
       - name: Set up MATLAB
         uses: matlab-actions/setup-matlab@v2
       - name: Run build
