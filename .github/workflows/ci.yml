@@ -12,7 +12,7 @@ jobs:
       - name: Install required compilers
         run: |
           sudo apt update
-          sudo apt install gcc-10 g++-10
+          sudo apt install gcc-10
         shell: bash
       - name: Set up MATLAB
         uses: matlab-actions/setup-matlab@v2
@@ -22,16 +22,16 @@ jobs:
           command: mex -setup c
         env:
          CC: gcc-10
-         CXX: g++-10
+         CXX: gcc-10
       - name: Setup mex
         uses: matlab-actions/run-command@v2
         with:
           command: mex -setup cpp
         env:
          CC: gcc-10
-         CXX: g++-10
+         CXX: gcc-10
       - name: Run build
         uses: matlab-actions/run-build@v2
         env:
          CC: gcc-10
-         CXX: g++-10
+         CXX: gcc-10
