@@ -1,3 +1,6 @@
-[submodule "mex/include/uWebSockets"]
-	path = mex/include/uWebSockets
+[submodule "include/uWebSockets"]
+	path = include/uWebSockets
 	url = https://github.com/uNetworking/uWebSockets.git
+[submodule "include/forge"]
+	path = include/forge
+	url = https://github.com/dbuzinski/forge.git

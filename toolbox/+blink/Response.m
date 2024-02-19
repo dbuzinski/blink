@@ -14,11 +14,11 @@ classdef Response
                 template (1,1) string
                 context (1,1) struct = struct()
             end
-            import blink.internal.forge.Forge;
+            import blink.internal.Forge;
 
             f = Forge();
-            tpl = string(fileread(template));
-            resp.Data = f.render(tpl, context);
+            tmpl = fileread(template);
+            resp.Data = f.render(tmpl, context);
         end
     end
 end
