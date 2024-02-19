@@ -5,9 +5,8 @@ plan = buildplan(localfunctions);
 
 plan("clean") = CleanTask();
 plan("lint") = CodeIssuesTask(["toolbox" "tests"]);
-
 plan("uWebSockets").Inputs = ["include/uWebSockets/uSockets/src/**/*.c" "include/uWebSockets/src"];
-plan("uWebSockets").Outputs = plan("uWebSockets").Inputs(1).replace("src/","").replace(".c", ".o");
+plan("uWebSockets").Outputs = plan("uWebSockets").Inputs(1).transform(@getuSocketsObjFile);
 plan("forge").Inputs = "include/forge/toolbox/Forge.m";
 plan("forge").Outputs = "toolbox/+blink/+internal/Forge.m";
 plan("mex") = MexTask([plan("uWebSockets").Outputs.paths, "mex/internal/*.cpp"], ...
@@ -39,4 +38,10 @@ end
 function packageTask(ctx)
 % Package toolbox
 matlab.addons.toolbox.packageToolbox("BlinkToolbox.prj", ctx.Task.Outputs.Path);
+end
+
+function o = getuSocketsObjFile(p)
+% Transforms each .c src file in uWebSockets into the corresponding .o file
+[~, name] = fileparts(p);
+o = "include/uWebSockets/uSockets/"+name+".o";
 end
