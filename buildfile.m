@@ -37,7 +37,7 @@ plan("package").Inputs.ToolboxOptions = @()ToolboxOptions( ...
     OutputFile="build/blink.mltbx" ...
 );
 
-plan.DefaultTasks = "package";
+plan.DefaultTasks = ["package" "test"];
 end
 
 function bazelBuild(~)

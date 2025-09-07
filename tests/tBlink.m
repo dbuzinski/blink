@@ -11,11 +11,11 @@ classdef tBlink < matlab.unittest.TestCase
         
         function testBasicRouteHandling(testCase)
             app = blink.App();
-            app.get("/test", @(req, resp) setfield(resp, 'Data', 'success'));
+            app.get('/test', @(req, resp) setfield(resp, 'Data', 'success'));
             
             testCase.verifyEqual(length(app.Routes), 1);
-            testCase.verifyEqual(app.Routes(1).HttpMethod, "GET");
-            testCase.verifyEqual(app.Routes(1).Path, "/test");
+            testCase.verifyEqual(app.Routes(1).HttpMethod, 'GET');
+            testCase.verifyEqual(app.Routes(1).Path, '/test');
         end
         
         function testStaticFilesConfiguration(testCase)
