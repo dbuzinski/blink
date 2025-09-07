@@ -12,10 +12,6 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            src/cpp/bazel-bin
-            src/cpp/bazel-out
-            src/cpp/bazel-testlogs
-            src/cpp/bazel-workspace
             .buildtool
             build
           key: ${{ runner.os }}-build-${{ github.ref_name }}
