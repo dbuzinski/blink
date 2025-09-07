@@ -5,3 +5,9 @@ build --macos_minimum_os=10.15
 # Test configuration
 test --test_output=all
 test --test_summary=detailed
+
+# Fix libstdc++ compatibility issues in CI
+build --linkopt=-static-libgcc
+build --linkopt=-static-libstdc++
+test --linkopt=-static-libgcc
+test --linkopt=-static-libstdc++

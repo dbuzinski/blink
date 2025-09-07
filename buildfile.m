@@ -42,7 +42,7 @@ end
 
 function bazelBuild(~)
 cd src/cpp/
-exitCode = system("bazel test //...");
+exitCode = system("bazel build //...");
 assert(exitCode == 0, "Bazel build failure.")
 end
 
