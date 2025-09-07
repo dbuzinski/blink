@@ -1,0 +1,23 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "blink_app",
+    srcs = [
+        "src/BlinkApp.cpp",
+        "src/WebServer.cpp",
+        "src/RequestParser.cpp",
+        "src/RouteMatcher.cpp",
+    ],
+    hdrs = [
+        "include/BlinkApp.hpp",
+        "include/WebServer.hpp",
+        "include/RequestParser.hpp",
+        "include/RouteMatcher.hpp",
+    ],
+    includes = ["include"],
+    deps = [
+        "@uwebsockets//:uwebsockets",
+    ],
+    visibility = ["//visibility:public"],
+)
+

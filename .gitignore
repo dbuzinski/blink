@@ -9,6 +9,9 @@
 # Build tool cache
 .buildtool
 
+# Build artifacts
+build
+
 # Derived content-obscured files
 *.p
 
@@ -35,3 +38,25 @@ codegen/
 
 # Cloud based storage dotfile
 .MATLABDriveTag
+
+# Bazel build artifacts
+bazel-*
+.bazelrc.local
+.bazelversion
+
+# C++ build artifacts
+*.o
+*.obj
+*.so
+*.dylib
+*.dll
+*.exe
+*.out
+*.app
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~

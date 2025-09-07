@@ -4,8 +4,6 @@ import matlab.buildtool.tasks.*;
 plan = buildplan(localfunctions);
 
 plan("clean") = CleanTask();
-plan("lint") = CodeIssuesTask(["src", "tests"]);
-plan("test") = TestTask("tests");
 plan("installDeps").Inputs.PackageJson = plan.files("package.json");
 plan("installDeps").Outputs.NodeModules = plan.files("node_modules");
 plan("buildCss").Dependencies = "installDeps";
@@ -16,7 +14,7 @@ plan("build").Inputs = ["src", "static", "templates"];
 plan("build").Outputs = "dist";
 plan("build").Dependencies = "buildCss";
 
-plan.DefaultTasks = ["lint", "test", "build"];
+plan.DefaultTasks = "build";
 end
 
 function installDepsTask(ctx)

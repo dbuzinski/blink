@@ -1,0 +1,28 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "uwebsockets",
+    hdrs = glob(["src/**/*.h"]),
+    includes = ["src"],
+    deps = [":usockets"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "usockets",
+    hdrs = glob(["uSockets/src/**/*.h"]),
+    srcs = glob([
+        "uSockets/src/**/*.c",
+        "uSockets/src/**/*.cpp",
+    ]),
+    includes = ["uSockets/src"],
+    defines = [
+        "LIBUS_USE_OPENSSL",
+    ],
+    deps = [
+        "//uSockets/boringssl:ssl",
+        "//uSockets/boringssl:crypto",
+        "@zlib//:zlib",
+    ],
+    visibility = ["//visibility:public"],
+)

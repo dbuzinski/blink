@@ -1,0 +1,34 @@
+load("@rules_cc//cc:defs.bzl", "cc_test")
+
+cc_test(
+    name = "test_blink_app",
+    srcs = ["test_blink_app.cpp"],
+    deps = [
+        "//:blink_app",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_test(
+    name = "test_request_parser",
+    srcs = ["test_request_parser.cpp"],
+    deps = [
+        "//:blink_app",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_test(
+    name = "test_route_matcher",
+    srcs = ["test_route_matcher.cpp"],
+    deps = [
+        "//:blink_app",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+    visibility = ["//visibility:public"],
+)

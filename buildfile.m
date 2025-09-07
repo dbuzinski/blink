@@ -1,47 +1,60 @@
 function plan = buildfile
+import matlab.buildtool.Task;
 import matlab.buildtool.tasks.*;
+import matlab.buildtool.io.FileCollection;
+import matlab.addons.toolbox.ToolboxOptions;
 
 plan = buildplan(localfunctions);
 
 plan("clean") = CleanTask();
-plan("lint") = CodeIssuesTask(["toolbox" "tests"]);
-plan("uWebSockets").Inputs = ["include/uWebSockets/uSockets/src/**/*.c" "include/uWebSockets/src"];
-plan("uWebSockets").Outputs = plan("uWebSockets").Inputs(1).transform(@getuSocketsObjFile);
-plan("forge").Inputs = "include/forge/toolbox/Forge.m";
-plan("forge").Outputs = "toolbox/+blink/+internal/Forge.m";
-plan("mex") = MexTask([plan("uWebSockets").Outputs.paths, "mex/internal/*.cpp"], ...
-    "toolbox/+blink/+internal", ...
+plan("lint") = CodeIssuesTask(["src/+blink" "tests"]);
+plan("source") = Task(Description="Add m source to toolbox", ...
+    Actions=@copySource);
+plan("source").Inputs.Folders = FileCollection.fromPaths("src/+blink");
+plan("source").Outputs.Folders = plan("source").Inputs.Folders.replace("src", fullfile("build", "toolbox"));
+plan("mex") = MexTask(["src/mex/**/*.cpp", "src/cpp/bazel-bin/**/*.o"], ...
+    "build/toolbox/+blink/+internal", ...
+    Options=["CXXFLAGS=''$CXXFLAGS -std=c++20''", "-Isrc/cpp/include"], ...
     Filename="serve", ...
-    Options=["CXXFLAGS=''$CXXFLAGS -std=c++20''", "-Iinclude/uWebSockets/src", "-Iinclude/uWebSockets/uSockets/src", "-lz"], ...
-    Dependencies="uWebSockets");
+    Dependencies="cpp");
+plan("cpp") = Task(Description="Compile C++ dependencies", ...
+    Actions=@bazelBuild);
 plan("test") = TestTask("tests");
-plan("test").Dependencies = ["mex" "forge"];
-plan("package").Inputs = ["BlinkToolbox.prj" plan("mex").MexFile, plan("forge").Outputs];
-plan("package").Outputs = "Blink.mltbx";
+plan("test").Dependencies = ["source", "mex"];
+plan("package") = Task(Description="Package toolbox", ...
+    Actions=@packageToolbox, ...
+    Dependencies=["source", "mex"], ...
+    Outputs="build/blink.mltbx");
+plan("package").Inputs.ToolboxFolder = plan.files("build/toolbox");
+plan("package").Inputs.ToolboxOptions = @()ToolboxOptions( ...
+    "build/toolbox", ...
+    "15D3F48E-0EA8-437E-B257-92FBFD1E1DD1", ...
+    ToolboxName="Blink", ...
+    ToolboxVersion="0.1.0", ...
+    Description="Blink is a web framework for MATLAB", ...
+    AuthorName="David Buzinski", ...
+    AuthorEmail="davidbuzinski@gmail.com", ...
+    OutputFile="build/blink.mltbx" ...
+);
 
-plan.DefaultTasks = ["lint" "test" "package"];
+plan.DefaultTasks = "package";
 end
 
-function uWebSocketsTask(~)
-% Build uWebSockets dependency
-cd include/uWebSockets/uSockets
-!make
-cd ..
-!make default
+function bazelBuild(~)
+cd src/cpp/
+exitCode = system("bazel build //...");
+assert(exitCode == 0, "Bazel build failure.")
 end
 
-function forgeTask(ctx)
-% Include files from Forge dependency
-copyfile(ctx.Task.Inputs.Path, ctx.Task.Outputs.Path);
+function copySource(ctx)
+folders = ctx.Task.Inputs.Folders.paths();
+for folder = folders(:)'
+    [~,folderName] = fileparts(folder);
+    copyfile(folder, fullfile("build", "toolbox", folderName));
+end
 end
 
-function packageTask(ctx)
-% Package toolbox
-matlab.addons.toolbox.packageToolbox("BlinkToolbox.prj", ctx.Task.Outputs.Path);
-end
-
-function o = getuSocketsObjFile(p)
-% Transforms each .c src file in uSockets into the corresponding .o file
-[~, name] = fileparts(p);
-o = "include/uWebSockets/uSockets/"+name+".o";
+function packageToolbox(ctx)
+toolboxOptions = ctx.Task.Inputs.ToolboxOptions();
+matlab.addons.toolbox.packageToolbox(toolboxOptions);
 end
