@@ -1,0 +1,16 @@
+# Put Bazel’s workspace symlinks in dist/ output folder
+build --symlink_prefix=../dist/bazel-
+
+# Basic Bazel configuration
+build --cxxopt=-std=c++20
+build --macos_minimum_os=10.15
+
+# Test configuration
+test --test_output=all
+test --test_summary=detailed
+
+# Fix libstdc++ compatibility issues in CI
+build:linux --linkopt=-static-libgcc
+build:linux --linkopt=-static-libstdc++
+test:linux --linkopt=-static-libgcc
+test:linux --linkopt=-static-libstdc++
