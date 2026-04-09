@@ -1,12 +1,6 @@
 name: Build toolbox
 on: [push]
 jobs:
-  docs:
-    name: MkDocs (strict)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v6
   build:
     name: Build toolbox
     runs-on: ubuntu-latest
