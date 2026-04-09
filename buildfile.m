@@ -17,6 +17,8 @@ plan("cpp") = Task(Description="Compile C++ dependencies", ...
     Actions=@bazelBuild);
 plan("test") = TestTask("tests");
 plan("test").Dependencies = "mex";
+plan("mkdocs") = Task(Description="Build documentation", ...
+    Actions=@buildMkdocs);
 % plan("package") = Task(Description="Package toolbox", ...
 %     Actions=@packageToolbox, ...
 %     Dependencies=["matstache", "mex"], ...
@@ -40,6 +42,40 @@ function bazelBuild(~)
 cd src/cpp/
 exitCode = system("bazel build //...");
 assert(exitCode == 0, "Bazel build failure.")
+end
+
+function buildMkdocs(~)
+projectRoot = fileparts(mfilename("fullpath"));
+oldDir = cd(projectRoot);
+cleanupObj = onCleanup(@() cd(oldDir));
+pythonExe = resolvePythonForMkdocs(projectRoot);
+cmd = sprintf("%s -m mkdocs build --strict", pythonExe);
+[status, cmdout] = system(cmd);
+if status ~= 0
+    fprintf("%s", cmdout);
+    error("MkDocs build failed (exit code %d). Install docs deps: pip install -r requirements-docs.txt", status);
+end
+end
+
+function pythonExe = resolvePythonForMkdocs(projectRoot)
+if ispc
+    venvPy = fullfile(projectRoot, ".venv", "Scripts", "python.exe");
+else
+    venvPy = fullfile(projectRoot, ".venv", "bin", "python3");
+end
+if isfile(venvPy)
+    pythonExe = quoteIfNeeded(venvPy);
+else
+    pythonExe = "python3";
+end
+end
+
+function s = quoteIfNeeded(pathStr)
+if contains(pathStr, " ")
+    s = ['"' pathStr '"'];
+else
+    s = pathStr;
+end
 end
 
 function copyFiles(ctx)

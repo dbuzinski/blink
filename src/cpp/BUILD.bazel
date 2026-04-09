@@ -5,12 +5,14 @@ cc_library(
     srcs = [
         "src/BlinkApp.cpp",
         "src/WebServer.cpp",
+        "src/HttpStatus.cpp",
         "src/RequestParser.cpp",
         "src/RouteMatcher.cpp",
     ],
     hdrs = [
         "include/BlinkApp.hpp",
         "include/WebServer.hpp",
+        "include/HttpStatus.hpp",
         "include/RequestParser.hpp",
         "include/RouteMatcher.hpp",
     ],

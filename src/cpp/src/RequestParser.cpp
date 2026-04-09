@@ -1,4 +1,5 @@
 #include "RequestParser.hpp"
+#include <cctype>
 #include <sstream>
 #include <iostream>
 #include <vector>
@@ -24,6 +25,40 @@ std::unordered_map<std::string, std::string> RequestParser::parseQueryString(con
     }
     
     return params;
+}
+
+std::string RequestParser::matlabFieldNameToHttpHeaderName(const std::string& field) {
+    std::string out;
+    out.reserve(field.size());
+    for (unsigned char c : field) {
+        if (c == '_') {
+            out += '-';
+        } else {
+            out += static_cast<char>(c);
+        }
+    }
+    return out;
+}
+
+std::string RequestParser::queryKeyToMatlabFieldName(const std::string& key) {
+    if (key.empty()) {
+        return "empty";
+    }
+    std::string out;
+    out.reserve(key.size());
+    for (unsigned char c : key) {
+        if (std::isalnum(c)) {
+            out += static_cast<char>(c);
+        } else if (c == '_') {
+            out += '_';
+        } else {
+            out += '_';
+        }
+    }
+    if (!std::isalpha(static_cast<unsigned char>(out[0]))) {
+        out.insert(out.begin(), 'x');
+    }
+    return out;
 }
 
 std::string RequestParser::extractPath(const std::string& url) {

@@ -1,6 +1,20 @@
 name: Build toolbox
 on: [push]
 jobs:
+  docs:
+    name: MkDocs (strict)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install MkDocs
+        run: pip install -r requirements-docs.txt
+      - name: Build documentation
+        run: mkdocs build --strict
   build:
     name: Build toolbox
     runs-on: ubuntu-latest

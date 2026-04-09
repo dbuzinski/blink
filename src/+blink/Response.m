@@ -2,6 +2,8 @@ classdef Response
     properties
         Data (1,:) char
         StatusCode (1,1) int16 = 200
+        ContentType (1,1) string = ""
+        Headers (1,1) struct = struct()
     end
 
     methods

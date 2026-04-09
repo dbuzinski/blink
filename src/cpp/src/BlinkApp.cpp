@@ -2,12 +2,31 @@
 #include "WebServer.hpp"
 #include "RequestParser.hpp"
 #include "RouteMatcher.hpp"
+#include "HttpStatus.hpp"
+#include <algorithm>
 #include <fstream>
 #include <filesystem>
 #include <string>
 #include <memory>
 #include <vector>
 #include <stdexcept>
+#include <cctype>
+
+namespace {
+
+bool headerNameEqualsIgnoreCase(const std::string& a, const std::string& b) {
+    if (a.size() != b.size()) {
+        return false;
+    }
+    for (size_t i = 0; i < a.size(); ++i) {
+        if (std::tolower(static_cast<unsigned char>(a[i])) != std::tolower(static_cast<unsigned char>(b[i]))) {
+            return false;
+        }
+    }
+    return true;
+}
+
+} // namespace
 
 BlinkApp::BlinkApp(std::shared_ptr<MATLABCaller> matlabCaller) 
     : webServer(std::make_unique<WebServer>()), matlabCaller(matlabCaller) {
@@ -18,6 +37,7 @@ BlinkApp::~BlinkApp() {
 }
 
 void BlinkApp::addRoutes(const std::vector<Route>& routes) {
+    registeredRoutes_.insert(registeredRoutes_.end(), routes.begin(), routes.end());
     for (const auto& route : routes) {
         if (route.httpMethod == "GET") {
             webServer->get(route.path, [this, route](auto *res, auto *req) {
@@ -40,6 +60,7 @@ void BlinkApp::addRoutes(const std::vector<Route>& routes) {
 }
 
 void BlinkApp::addStaticFiles(const std::string& staticPath, const std::string& staticRoute) {
+    staticRoutePrefixes_.push_back(staticRoute);
     webServer->get(staticRoute + "/*", [this, staticPath, staticRoute](auto *res, auto *req) {
         std::string url = std::string(req->getUrl());
         std::string filePath = staticPath + url.substr(staticRoute.length());
@@ -47,48 +68,127 @@ void BlinkApp::addStaticFiles(const std::string& staticPath, const std::string& 
     });
 }
 
-void BlinkApp::listen(int port) {
-    try {
-        auto listenResult = webServer->listen(port, [port](auto *listen_socket) {
-            if (!listen_socket) {
-                throw std::runtime_error("Failed to listen on port " + std::to_string(port));
-            }
-        });
-        listenResult.run();
-    } catch (const std::exception& e) {
-        throw std::runtime_error("Error in listen(): " + std::string(e.what()));
-    } catch (...) {
-        throw std::runtime_error("Unknown error in listen()");
+void BlinkApp::setTreatWrongMethodAs405(bool enable) {
+    treatWrongMethodAs405_ = enable;
+}
+
+bool BlinkApp::pathUnderStaticPrefix(const std::string& path, const std::string& staticRoute) {
+    if (staticRoute.empty()) {
+        return false;
     }
+    if (path == staticRoute) {
+        return true;
+    }
+    return path.size() > staticRoute.size() && path.compare(0, staticRoute.size(), staticRoute) == 0
+        && path[staticRoute.size()] == '/';
+}
+
+std::vector<std::string> BlinkApp::allowedMethodsForPath(const std::string& path) const {
+    std::vector<std::string> methods;
+    for (const auto& route : registeredRoutes_) {
+        if (RouteMatcher::matches(route.path, path)) {
+            methods.push_back(route.httpMethod);
+        }
+    }
+    for (const std::string& prefix : staticRoutePrefixes_) {
+        if (pathUnderStaticPrefix(path, prefix)) {
+            methods.push_back("GET");
+            break;
+        }
+    }
+    std::sort(methods.begin(), methods.end());
+    methods.erase(std::unique(methods.begin(), methods.end()), methods.end());
+    return methods;
+}
+
+void BlinkApp::registerFallbackRoute() {
+    if (fallbackRegistered_) {
+        return;
+    }
+    fallbackRegistered_ = true;
+
+    webServer->any("/*", [this](auto* res, auto* req) {
+        const std::string path = RequestParser::extractPath(std::string(req->getUrl()));
+        const std::string method = std::string(req->getMethod());
+        const std::vector<std::string> allowed = allowedMethodsForPath(path);
+
+        if (allowed.empty()) {
+            sendErrorResponse(res, 404, "Not Found");
+            return;
+        }
+
+        const bool methodOk = std::find(allowed.begin(), allowed.end(), method) != allowed.end();
+        if (methodOk) {
+            // Defensive: path matches a route but uWebSockets did not dispatch to it (e.g. pattern edge case).
+            sendErrorResponse(res, 404, "Not Found");
+            return;
+        }
+
+        if (treatWrongMethodAs405_) {
+            std::string allowHeader;
+            for (size_t i = 0; i < allowed.size(); ++i) {
+                if (i > 0) {
+                    allowHeader += ", ";
+                }
+                allowHeader += allowed[i];
+            }
+            res->writeStatus(httpStatusLine(405));
+            res->writeHeader("Allow", allowHeader);
+            res->writeHeader("Content-Type", "text/plain; charset=utf-8");
+            res->end("Method Not Allowed");
+            return;
+        }
+
+        sendErrorResponse(res, 404, "Not Found");
+    });
+}
+
+void BlinkApp::beginListen(int port) {
+    registerFallbackRoute();
+    bool failedToListen = false;
+    webServer->listen(port, [&failedToListen](auto* listen_socket) {
+        failedToListen = (listen_socket == nullptr);
+    });
+
+    if (failedToListen) {
+        throw std::runtime_error("Failed to listen on port " + std::to_string(port));
+    }
+}
+
+void BlinkApp::runEventLoop() {
+    webServer->run();
+}
+
+void BlinkApp::stop() {
+    webServer->stopListening();
+}
+
+void BlinkApp::listen(int port) {
+    beginListen(port);
+    runEventLoop();
 }
 
 template<typename ResType, typename ReqType>
 void BlinkApp::handleRequest(ResType* res, ReqType* req, const Route& route) {
     auto isAborted = std::make_shared<bool>(false);
+    auto bodyBuffer = std::make_shared<std::string>();
     
     // Handle request body using onData callback
-    res->onData([this, res, req, route, isAborted, bodyBuffer = (std::string*)nullptr](std::string_view chunk, bool isLast) mutable {
-        if (isLast && !*isAborted) {
-            if (bodyBuffer) {
-                bodyBuffer->append(chunk);
-                processRequest(res, req, route, bodyBuffer->c_str());
-                delete bodyBuffer;
-            } else {
-                bodyBuffer = new std::string;
-                bodyBuffer->append(chunk);
-                processRequest(res, req, route, bodyBuffer->c_str());
-                delete bodyBuffer;
-            }
-        } else {
-            if (!bodyBuffer) {
-                bodyBuffer = new std::string;
-            }
-            bodyBuffer->append(chunk);
+    res->onData([this, res, req, route, isAborted, bodyBuffer](std::string_view chunk, bool isLast) mutable {
+        if (*isAborted) {
+            return;
+        }
+
+        bodyBuffer->append(chunk);
+
+        if (isLast) {
+            processRequest(res, req, route, bodyBuffer->c_str());
         }
     });
     
-    res->onAborted([isAborted]() {
+    res->onAborted([isAborted, bodyBuffer]() {
         *isAborted = true;
+        bodyBuffer->clear();
     });
 }
 
@@ -132,16 +232,33 @@ void BlinkApp::processRequest(ResType* res, ReqType* req, const Route& route, co
 
 template<typename ResType>
 void BlinkApp::sendResponse(ResType* res, const ResponseData& response) {
-    // Set content type if specified
+    // Status must be written before headers
+    res->writeStatus(httpStatusLine(response.statusCode));
+
+    bool wroteContentType = false;
     if (!response.contentType.empty()) {
         res->writeHeader("Content-Type", response.contentType);
+        wroteContentType = true;
     }
-    
-    // Send response with status code and body
-    res->writeStatus(std::to_string(response.statusCode))->end(response.body);
+
+    for (const auto& [name, value] : response.headers) {
+        if (wroteContentType && headerNameEqualsIgnoreCase(name, "Content-Type")) {
+            continue;
+        }
+        res->writeHeader(name, value);
+        if (headerNameEqualsIgnoreCase(name, "Content-Type")) {
+            wroteContentType = true;
+        }
+    }
+
+    if (!wroteContentType) {
+        res->writeHeader("Content-Type", "text/html");
+    }
+
+    res->end(response.body);
 }
 
 template<typename ResType>
 void BlinkApp::sendErrorResponse(ResType* res, int statusCode, const std::string& message) {
-    res->writeStatus(std::to_string(statusCode))->end(message);
+    res->writeStatus(httpStatusLine(statusCode))->end(message);
 }

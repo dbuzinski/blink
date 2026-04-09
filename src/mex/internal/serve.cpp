@@ -1,9 +1,47 @@
 #include "mex.hpp"
 #include "mexAdapter.hpp"
 #include "BlinkApp.hpp"
+#include "RequestParser.hpp"
 #include <string>
 #include <vector>
 #include <unordered_map>
+
+namespace {
+
+std::string matlabScalarToUtf8(const matlab::data::Array& arr) {
+    if (arr.getNumberOfElements() == 0) {
+        return "";
+    }
+    switch (arr.getType()) {
+    case matlab::data::ArrayType::CHAR:
+        return static_cast<matlab::data::CharArray>(arr).toAscii();
+    case matlab::data::ArrayType::MATLAB_STRING: {
+        matlab::data::StringArray sa = arr;
+        return std::string(sa[0]);
+    }
+    default:
+        return "";
+    }
+}
+
+void appendResponseHeadersFromMatlabStruct(
+    const matlab::data::StructArray& s,
+    std::vector<std::pair<std::string, std::string>>& out) {
+    if (s.getNumberOfElements() < 1) {
+        return;
+    }
+    for (const auto& fieldId : s.getFieldNames()) {
+        const std::string field = static_cast<std::string>(fieldId);
+        matlab::data::Array val = s[0][field];
+        std::string value = matlabScalarToUtf8(val);
+        std::string headerName = RequestParser::matlabFieldNameToHttpHeaderName(field);
+        if (!headerName.empty()) {
+            out.emplace_back(std::move(headerName), std::move(value));
+        }
+    }
+}
+
+} // namespace
 
 // MATLAB caller implementation that uses MATLAB Engine directly
 class MATLABEngineCaller : public MATLABCaller {
@@ -35,8 +73,42 @@ public:
                 paramsStruct[0][paramFieldNames[fieldIndex]] = factory.createCharArray(value);
                 fieldIndex++;
             }
-            matlab::data::StructArray queryStruct = factory.createStructArray({1, 1}, {});
-            matlab::data::StructArray headersStruct = factory.createStructArray({1, 1}, {});
+
+            std::unordered_map<std::string, std::string> queryParsed =
+                RequestParser::parseQueryString(request.query);
+            std::unordered_map<std::string, std::string> queryByFieldName;
+            for (const auto& [key, value] : queryParsed) {
+                queryByFieldName[RequestParser::queryKeyToMatlabFieldName(key)] = value;
+            }
+            std::vector<std::string> queryFieldNames;
+            std::vector<std::string> queryFieldValues;
+            queryFieldNames.reserve(queryByFieldName.size());
+            queryFieldValues.reserve(queryByFieldName.size());
+            for (const auto& [fieldName, value] : queryByFieldName) {
+                queryFieldNames.push_back(fieldName);
+                queryFieldValues.push_back(value);
+            }
+            matlab::data::StructArray queryStruct = factory.createStructArray({1, 1}, queryFieldNames);
+            for (size_t qi = 0; qi < queryFieldNames.size(); ++qi) {
+                queryStruct[0][queryFieldNames[qi]] = factory.createCharArray(queryFieldValues[qi]);
+            }
+
+            std::unordered_map<std::string, std::string> headersByFieldName;
+            for (const auto& [name, value] : request.headers) {
+                headersByFieldName[RequestParser::queryKeyToMatlabFieldName(name)] = value;
+            }
+            std::vector<std::string> headerFieldNames;
+            std::vector<std::string> headerFieldValues;
+            headerFieldNames.reserve(headersByFieldName.size());
+            headerFieldValues.reserve(headersByFieldName.size());
+            for (const auto& [fieldName, value] : headersByFieldName) {
+                headerFieldNames.push_back(fieldName);
+                headerFieldValues.push_back(value);
+            }
+            matlab::data::StructArray headersStruct = factory.createStructArray({1, 1}, headerFieldNames);
+            for (size_t hi = 0; hi < headerFieldNames.size(); ++hi) {
+                headersStruct[0][headerFieldNames[hi]] = factory.createCharArray(headerFieldValues[hi]);
+            }
             matlab::data::CharArray bodyData = factory.createCharArray(request.body);
             
             // Create Request object using the constructor
@@ -62,11 +134,19 @@ public:
             
             matlab::data::CharArray respData = matlabPtr->getProperty(handlerResponse, "Data");
             matlab::data::Array respStatus = matlabPtr->getProperty(handlerResponse, "StatusCode");
-           
+            matlab::data::Array contentTypeArr = matlabPtr->getProperty(handlerResponse, "ContentType");
+            matlab::data::Array headersArr = matlabPtr->getProperty(handlerResponse, "Headers");
+
             response.body = respData.toAscii();
             response.statusCode = static_cast<int>(respStatus[0]);
-            response.contentType = "text/html";
-            
+            response.contentType = matlabScalarToUtf8(contentTypeArr);
+
+            if (headersArr.getType() == matlab::data::ArrayType::STRUCT) {
+                appendResponseHeadersFromMatlabStruct(
+                    static_cast<matlab::data::StructArray>(headersArr),
+                    response.headers);
+            }
+
             return response;
             
         } catch (const std::exception& e) {
