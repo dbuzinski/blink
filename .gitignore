@@ -11,6 +11,7 @@
 
 # Build artifacts
 build
+dist/
 
 # Derived content-obscured files
 *.p
@@ -38,6 +39,12 @@ codegen/
 
 # Cloud based storage dotfile
 .MATLABDriveTag
+
+# MkDocs output
+site/
+
+# Local Python venv for docs
+.venv/
 
 # Bazel build artifacts
 bazel-*
