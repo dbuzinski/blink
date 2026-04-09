@@ -1,0 +1,11 @@
+<ul id="todoList" class="space-y-2">
+    {{#todos}}
+        <li id="todo-{{id}}" class="flex items-center justify-between bg-gray-800 px-4 py-2 rounded-md shadow">
+            <label class="flex items-center">
+                <input type="checkbox" autocomplete="off"{{#completed}} checked{{/completed}} hx-post="/toggle/{{id}}" hx-target="#todoList" hx-swap="outerHTML" class="mr-2 form-checkbox h-6 w-6 text-green-500 focus:outline-none focus:ring">
+                <span {{#completed}}class="line-through"{{/completed}}>{{text}}</span>
+            </label>
+            <button hx-delete="/delete/{{id}}" hx-swap="outerHTML" hx-target="#todo-{{id}}" hx-indicator="#loading" hx-trigger="click" class="text-red-500 hover:text-red-600 focus:outline-none focus:ring">X</button>
+        </li>
+    {{/todos}}
+</ul>

@@ -8,7 +8,11 @@ plan("lint") = CodeIssuesTask("src");
 plan("installDeps").Inputs.PackageJson = plan.files("styles/package.json");
 plan("installDeps").Outputs.NodeModules = plan.files("styles/node_modules");
 plan("buildCss").Dependencies = "installDeps";
-plan("buildCss").Inputs.Content = plan.files(["static/**/*.html", "templates/**/*.html", "templates/**/*.mtl"]);
+plan("buildCss").Inputs.Content = plan.files([
+    "static/**/*.html",
+    "templates/**/*.html",
+    "templates/**/*.mustache",
+    ]);
 plan("buildCss").Inputs.DirectivesFile = plan.files("styles/app.css");
 plan("buildCss").Outputs.CssFile = plan.files("static/css/app.css");
 plan("build").Inputs = ["src", "static", "templates"];

@@ -1,0 +1,3 @@
+[submodule "include/matstache"]
+	path = include/matstache
+	url = git@github.com:dbuzinski/matstache.git

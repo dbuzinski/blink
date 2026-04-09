@@ -8,17 +8,15 @@ classdef Response
         function resp = Response(varargin)
         end
         
-        function resp = render(resp, template, context)
+        function resp = render(resp, renderer, template, context, partials)
             arguments
                 resp
+                renderer
                 template (1,1) string
                 context (1,1) struct = struct()
+                partials (1,1) struct = struct()
             end
-            import blink.internal.Forge;
-
-            f = Forge();
-            tmpl = fileread(template);
-            resp.Data = f.render(tmpl, context);
+            resp.Data = renderer.render(template, context, partials);
         end
     end
 end

@@ -7,7 +7,7 @@ test --test_output=all
 test --test_summary=detailed
 
 # Fix libstdc++ compatibility issues in CI
-build --linkopt=-static-libgcc
-build --linkopt=-static-libstdc++
-test --linkopt=-static-libgcc
-test --linkopt=-static-libstdc++
+build:linux --linkopt=-static-libgcc
+build:linux --linkopt=-static-libstdc++
+test:linux --linkopt=-static-libgcc
+test:linux --linkopt=-static-libstdc++
