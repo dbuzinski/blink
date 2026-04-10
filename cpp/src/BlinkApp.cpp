@@ -106,6 +106,8 @@ BlinkApp::BlinkApp(std::shared_ptr<MATLABCaller> matlabCaller)
     : webServer_(std::make_unique<WebServer>()), matlabCaller_(std::move(matlabCaller)) {
 }
 
+BlinkApp::~BlinkApp() = default;
+
 void BlinkApp::addRoutes(const std::vector<Route>& routes) {
     registeredRoutes_.insert(registeredRoutes_.end(), routes.begin(), routes.end());
     for (const auto& route : routes) {

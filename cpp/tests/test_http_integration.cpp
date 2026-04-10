@@ -60,8 +60,8 @@ class MockForGet404 : public MATLABCaller {
 public:
     ResponseData callHandler(const std::string&, const RequestData&) override {
         ResponseData r;
-        r.statusCode = 404;
-        r.contentType = "text/plain";
+        r.status_code = 404;
+        r.content_type = "text/plain";
         r.body = "nope";
         return r;
     }
@@ -74,8 +74,8 @@ public:
     ResponseData callHandler(const std::string&, const RequestData& request) override {
         lastBody = request.body;
         ResponseData r;
-        r.statusCode = 200;
-        r.contentType = "application/octet-stream";
+        r.status_code = 200;
+        r.content_type = "application/octet-stream";
         r.body = "ok";
         return r;
     }
@@ -88,8 +88,8 @@ public:
     ResponseData callHandler(const std::string&, const RequestData& request) override {
         lastHeaders = request.headers;
         ResponseData r;
-        r.statusCode = 200;
-        r.contentType = "text/plain";
+        r.status_code = 200;
+        r.content_type = "text/plain";
         r.body = "ok";
         return r;
     }
@@ -99,8 +99,8 @@ class MockWithExtraHeaders : public MATLABCaller {
 public:
     ResponseData callHandler(const std::string&, const RequestData&) override {
         ResponseData r;
-        r.statusCode = 200;
-        r.contentType = "text/plain";
+        r.status_code = 200;
+        r.content_type = "text/plain";
         r.body = "ok";
         r.headers.push_back({"X-Blink-Test", "42"});
         return r;
@@ -113,8 +113,8 @@ public:
     ResponseData callHandler(const std::string&, const RequestData&) override {
         ADD_FAILURE() << "Handler must not be called for framework-generated 404/405";
         ResponseData r;
-        r.statusCode = 500;
-        r.contentType = "text/plain";
+        r.status_code = 500;
+        r.content_type = "text/plain";
         r.body = "fail";
         return r;
     }

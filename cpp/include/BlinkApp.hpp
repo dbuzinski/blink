@@ -48,7 +48,7 @@ struct Route {
 class BlinkApp {
 public:
     BlinkApp(std::shared_ptr<MATLABCaller> matlabCaller);
-    ~BlinkApp() = default;
+    ~BlinkApp();
     
     void addRoutes(const std::vector<Route>& routes);
     void addStaticFiles(const std::string& staticPath, const std::string& staticRoute);
