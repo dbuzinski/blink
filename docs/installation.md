@@ -1,48 +1,52 @@
 # Installation
 
-## From a packaged toolbox
+## Supported MATLAB Releases
 
-If you have a `.mltbx` built by this project’s MATLAB Build Tool, install it from the MATLAB **Home** tab: **Add-Ons** → **Install from File**, then select the toolbox file.
+Blink is tested on MATLAB **R2022b and later**; we recommend using the latest MATLAB release.
 
-That puts `+blink` on the MATLAB path for that installation.
+## Supported Platforms
 
-## From source (development)
+Blink supports installation on:
 
-1. Clone the repository and open MATLAB at the repo root.
+- Linux (x86_64)
+- Windows
+- macOS (Apple Silicon)
 
-2. Add the framework sources to your path:
+[Building from source](#build-from-source) may work on additional platforms, but it isn’t officially supported.
 
-   ```matlab
-   addpath(fullfile(pwd, "src"));
-   ```
+## Dependencies
 
-3. Build native artifacts with the [MATLAB Build Tool](https://www.mathworks.com/help/matlab/matlab_prog/overview-of-matlab-build-tool.html):
+- **Matstache** is required to render templates.
 
-   ```matlab
-   buildtool
-   ```
+## Optional dependencies
 
-   The default plan compiles MEX files and packages the toolbox. See the repository `README` for Bazel and toolchain requirements.
+These are optional and unlock additional workflows:
 
-## Verify
+- **Database Toolbox**: for database-backed apps (see [Using Database Toolbox](getting-started.md#using-database-toolbox)).
+- **Parallel Computing Toolbox**: for throughput/concurrency patterns (see [Using Parallel Computing Toolbox](getting-started.md#using-parallel-computing-toolbox)).
+- **MATLAB Compiler**: for packaging and deploying apps at scale (see [Deploying at Scale with MATLAB Compiler](getting-started.md#deploying-at-scale-with-matlab-compiler)).
 
-After `addpath` and a successful build:
+## Install from MLTBX
+
+Blink can be installed from the Add-On Explorer, or by downloading and installing `blink.mltbx` from File Exchange.
+
+You can verify your installation in MATLAB by running:
 
 ```matlab
-which blink.internal.serve   % should resolve to a MEX file
+which blink.App
 ```
 
-`blink.internal.serve` is used internally by [`blink.App`](application.md). You do not call it from application code; it is not part of the public API.
+## Build from Source
 
-## Building this documentation
+Prerequisites:
 
-From the repository root, use a virtual environment (recommended on macOS/Homebrew Python):
+- Git
+- Bazel >=  9.0
+- A C++20 compiler toolchain
+- Python 3 (for building docs)
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r requirements-docs.txt
-mkdocs serve
-```
+Commands:
 
-Open the URL printed in the terminal to preview the site. Use `mkdocs build --strict` to produce static HTML under `site/` (ignored by git).
+1. Clone the repository.
+2. In MATLAB, run `buildtool package` to create an installable `.mltbx`.
+3. In MATLAB, run `buildtool` for a full build (including tests and documentation).
