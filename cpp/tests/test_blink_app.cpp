@@ -9,8 +9,8 @@ public:
     ResponseData callHandler(const std::string& handlerName, const RequestData& request) override {
         ResponseData response;
         response.body = "Mock response from " + handlerName;
-        response.statusCode = 200;
-        response.contentType = "text/plain";
+        response.status_code = 200;
+        response.content_type = "text/plain";
         return response;
     }
     
@@ -33,7 +33,7 @@ TEST(BlinkAppTest, BasicRouteHandling) {
     BlinkApp app(mockCaller);
     
     std::vector<Route> routes = {
-        {"GET", "/hello", "helloHandler"}
+        {.http_method = "GET", .path = "/hello", .handler_name = "helloHandler"}
     };
     
     // Should not throw

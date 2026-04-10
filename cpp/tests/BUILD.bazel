@@ -23,17 +23,6 @@ cc_test(
 )
 
 cc_test(
-    name = "test_route_matcher",
-    srcs = ["test_route_matcher.cpp"],
-    deps = [
-        "//:blink_app",
-        "@googletest//:gtest",
-        "@googletest//:gtest_main",
-    ],
-    visibility = ["//visibility:public"],
-)
-
-cc_test(
     name = "test_http_status",
     srcs = ["test_http_status.cpp"],
     deps = [

@@ -1,4 +1,17 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+
+filegroup(
+    name = "clang_tidy_config",
+    srcs = [".clang-tidy"],
+    visibility = ["//visibility:public"],
+)
+
+sh_binary(
+    name = "homebrew_clang_tidy",
+    srcs = ["tools/homebrew_clang_tidy.sh"],
+    visibility = ["//visibility:public"],
+)
 
 cc_library(
     name = "blink_app",
@@ -7,14 +20,12 @@ cc_library(
         "src/WebServer.cpp",
         "src/HttpStatus.cpp",
         "src/RequestParser.cpp",
-        "src/RouteMatcher.cpp",
     ],
     hdrs = [
         "include/BlinkApp.hpp",
         "include/WebServer.hpp",
         "include/HttpStatus.hpp",
         "include/RequestParser.hpp",
-        "include/RouteMatcher.hpp",
     ],
     includes = ["include"],
     deps = [

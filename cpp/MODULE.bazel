@@ -7,6 +7,7 @@ module(
 bazel_dep(name = "rules_cc", version = "0.2.17")
 bazel_dep(name = "rules_license", version = "1.0.0")
 bazel_dep(name = "platforms", version = "1.0.0")
+bazel_dep(name = "rules_shell", version = "0.6.1")
 
 # uWebSockets dependencies
 bazel_dep(name = "zlib", version = "1.3.1.bcr.6")
@@ -29,4 +30,11 @@ git_repository(
     tag = "v20.74.0",
     recursive_init_submodules = True,
     build_file = "//:BUILD.uwebsockets",
+)
+
+# clang-tidy integration
+git_repository(
+    name = "bazel_clang_tidy",
+    remote = "https://github.com/erenon/bazel_clang_tidy.git",
+    branch = "master",
 )

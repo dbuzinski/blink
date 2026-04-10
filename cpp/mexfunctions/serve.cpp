@@ -136,8 +136,8 @@ private:
             matlab::data::Array headersArr = matlabPtr->getProperty(handlerResponse, "Headers");
 
             response.body = respData.toAscii();
-            response.statusCode = static_cast<int>(respStatus[0]);
-            response.contentType = matlabScalarToUtf8(contentTypeArr);
+            response.status_code = static_cast<int>(respStatus[0]);
+            response.content_type = matlabScalarToUtf8(contentTypeArr);
 
             if (headersArr.getType() == matlab::data::ArrayType::STRUCT) {
                 appendResponseHeadersFromMatlabStruct(
@@ -150,8 +150,8 @@ private:
         } catch (const std::exception& e) {
             ResponseData errorResponse;
             errorResponse.body = "Internal Server Error";
-            errorResponse.statusCode = 500;
-            errorResponse.contentType = "text/plain";
+            errorResponse.status_code = 500;
+            errorResponse.content_type = "text/plain";
             return errorResponse;
         }
     }
@@ -166,14 +166,14 @@ public:
 
     void callHandlerAsync(const std::string& handlerName,
         const RequestData& request,
-        std::function<void(std::function<void()>)> deferToLoop,
-        std::function<void(ResponseData)> onComplete) override {
+        const std::function<void(std::function<void()>)>& deferToLoop,
+        const std::function<void(ResponseData)>& onComplete) override {
         // Offloads `invokeMatlab` so the µWebSockets thread can keep accepting I/O; completion is
         // posted via `deferToLoop` (typically `uWS::Loop::defer`). MATLAB remains single-threaded;
         // see `matlabMutex_`.
-        std::thread([this, handlerName, request, deferToLoop = std::move(deferToLoop), onComplete = std::move(onComplete)]() mutable {
+        std::thread([this, handlerName, request, deferToLoop, onComplete]() mutable {
             ResponseData r = invokeMatlab(handlerName, request);
-            deferToLoop([r = std::move(r), onComplete = std::move(onComplete)]() mutable {
+            deferToLoop([r = std::move(r), onComplete]() mutable {
                 onComplete(std::move(r));
             });
         }).detach();
@@ -285,9 +285,9 @@ private:
                     
                     // Create and add Route object
                     Route route;
-                    route.httpMethod = httpMethod;
+                    route.http_method = httpMethod;
                     route.path = path;
-                    route.handlerName = handlerName;
+                    route.handler_name = handlerName;
                     routes.push_back(route);
                     
                 } catch (const std::exception& e) {
