@@ -126,7 +126,7 @@ Target behavior: scale throughput using parallelism where appropriate:
 
 This section will eventually define what “safe” parallel usage looks like in Blink apps (state isolation, cancellation, timeouts).
 
-## Deploying at Scale with MATLAB Complier
+## Deploying at Scale with MATLAB Compiler
 
 Target behavior: compile and run Blink apps in production:
 

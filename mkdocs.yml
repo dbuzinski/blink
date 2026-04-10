@@ -27,7 +27,7 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Installation guide: installation-guide.md
+  - Installation: installation.md
   - Getting Started: getting-started.md
   - Tutorial: tutorial.md
   - Configuration: configuration.md
