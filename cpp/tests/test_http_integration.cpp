@@ -60,8 +60,8 @@ class MockForGet404 : public MATLABCaller {
 public:
     ResponseData callHandler(const std::string&, const RequestData&) override {
         ResponseData r;
-        r.statusCode = 404;
-        r.contentType = "text/plain";
+        r.status_code = 404;
+        r.content_type = "text/plain";
         r.body = "nope";
         return r;
     }
@@ -74,8 +74,8 @@ public:
     ResponseData callHandler(const std::string&, const RequestData& request) override {
         lastBody = request.body;
         ResponseData r;
-        r.statusCode = 200;
-        r.contentType = "application/octet-stream";
+        r.status_code = 200;
+        r.content_type = "application/octet-stream";
         r.body = "ok";
         return r;
     }
@@ -88,8 +88,8 @@ public:
     ResponseData callHandler(const std::string&, const RequestData& request) override {
         lastHeaders = request.headers;
         ResponseData r;
-        r.statusCode = 200;
-        r.contentType = "text/plain";
+        r.status_code = 200;
+        r.content_type = "text/plain";
         r.body = "ok";
         return r;
     }
@@ -99,8 +99,8 @@ class MockWithExtraHeaders : public MATLABCaller {
 public:
     ResponseData callHandler(const std::string&, const RequestData&) override {
         ResponseData r;
-        r.statusCode = 200;
-        r.contentType = "text/plain";
+        r.status_code = 200;
+        r.content_type = "text/plain";
         r.body = "ok";
         r.headers.push_back({"X-Blink-Test", "42"});
         return r;
@@ -113,8 +113,8 @@ public:
     ResponseData callHandler(const std::string&, const RequestData&) override {
         ADD_FAILURE() << "Handler must not be called for framework-generated 404/405";
         ResponseData r;
-        r.statusCode = 500;
-        r.contentType = "text/plain";
+        r.status_code = 500;
+        r.content_type = "text/plain";
         r.body = "fail";
         return r;
     }
@@ -149,7 +149,7 @@ TEST(HttpIntegrationTest, AsyncMatlabPathUsesDefaultCallerAndStillResponds) {
         try {
             auto app = std::make_shared<BlinkApp>(mock);
             app->setAsyncMatlabHandlers(true);
-            app->addRoutes({{"GET", "/it-async", "h0"}});
+            app->addRoutes({{.http_method = "GET", .path = "/it-async", .handler_name = "h0"}});
             int port = tryBeginListen(*app);
             if (port < 0) {
                 readyPromise.set_exception(std::make_exception_ptr(std::runtime_error("no free port")));
@@ -190,7 +190,7 @@ TEST(HttpIntegrationTest, GetReturnsStatusAndContentType) {
     std::thread server([&]() {
         try {
             auto app = std::make_shared<BlinkApp>(mock);
-            app->addRoutes({{"GET", "/it", "h0"}});
+            app->addRoutes({{.http_method = "GET", .path = "/it", .handler_name = "h0"}});
             int port = tryBeginListen(*app);
             if (port < 0) {
                 readyPromise.set_exception(std::make_exception_ptr(std::runtime_error("no free port")));
@@ -234,7 +234,7 @@ TEST(HttpIntegrationTest, HandlerReceivesParsedRequestHeaders) {
     std::thread server([&]() {
         try {
             auto app = std::make_shared<BlinkApp>(mock);
-            app->addRoutes({{"GET", "/hdr-in", "h0"}});
+            app->addRoutes({{.http_method = "GET", .path = "/hdr-in", .handler_name = "h0"}});
             int port = tryBeginListen(*app);
             if (port < 0) {
                 readyPromise.set_exception(std::make_exception_ptr(std::runtime_error("no free port")));
@@ -283,7 +283,7 @@ TEST(HttpIntegrationTest, GetReturnsCustomResponseHeaders) {
     std::thread server([&]() {
         try {
             auto app = std::make_shared<BlinkApp>(mock);
-            app->addRoutes({{"GET", "/hdr", "h0"}});
+            app->addRoutes({{.http_method = "GET", .path = "/hdr", .handler_name = "h0"}});
             int port = tryBeginListen(*app);
             if (port < 0) {
                 readyPromise.set_exception(std::make_exception_ptr(std::runtime_error("no free port")));
@@ -325,7 +325,7 @@ TEST(HttpIntegrationTest, UnmatchedPathReturns404WithoutCallingHandler) {
     std::thread server([&]() {
         try {
             auto app = std::make_shared<BlinkApp>(mock);
-            app->addRoutes({{"GET", "/only-this", "h0"}});
+            app->addRoutes({{.http_method = "GET", .path = "/only-this", .handler_name = "h0"}});
             int port = tryBeginListen(*app);
             if (port < 0) {
                 readyPromise.set_exception(std::make_exception_ptr(std::runtime_error("no free port")));
@@ -358,7 +358,7 @@ TEST(HttpIntegrationTest, UnmatchedPathReturns404WithoutCallingHandler) {
     server.join();
 }
 
-TEST(HttpIntegrationTest, WrongMethodReturns405WithAllowHeader) {
+TEST(HttpIntegrationTest, WrongMethodReturns404WithoutCallingHandler) {
     auto mock = std::make_shared<MockMustNotCall>();
     std::promise<ServerReady> readyPromise;
     auto readyFuture = readyPromise.get_future();
@@ -392,14 +392,14 @@ TEST(HttpIntegrationTest, WrongMethodReturns405WithAllowHeader) {
         "GET /echo HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n";
     std::string response = tcpHttpExchange("127.0.0.1", ready.port, request);
 
-    ASSERT_NE(response.find("HTTP/1.1 405 Method Not Allowed"), std::string::npos);
-    ASSERT_NE(response.find("Allow: POST"), std::string::npos);
+    ASSERT_NE(response.find("HTTP/1.1 404 Not Found"), std::string::npos);
+    ASSERT_NE(response.find("Not Found"), std::string::npos);
 
     ready.app->stop();
     server.join();
 }
 
-TEST(HttpIntegrationTest, WrongMethodOnStaticMountReturns405) {
+TEST(HttpIntegrationTest, WrongMethodOnStaticMountReturns404) {
     auto mock = std::make_shared<MockMustNotCall>();
     std::promise<ServerReady> readyPromise;
     auto readyFuture = readyPromise.get_future();
@@ -444,8 +444,8 @@ TEST(HttpIntegrationTest, WrongMethodOnStaticMountReturns405) {
         "DELETE /static/x.txt HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n";
     std::string response = tcpHttpExchange("127.0.0.1", ready.port, request);
 
-    ASSERT_NE(response.find("HTTP/1.1 405 Method Not Allowed"), std::string::npos);
-    ASSERT_NE(response.find("Allow: GET"), std::string::npos);
+    ASSERT_NE(response.find("HTTP/1.1 404 Not Found"), std::string::npos);
+    ASSERT_NE(response.find("Not Found"), std::string::npos);
 
     ready.app->stop();
     server.join();

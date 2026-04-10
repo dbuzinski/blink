@@ -1,9 +1,11 @@
 #pragma once
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
 // Forward declaration for uWebSockets request types
+// NOLINTNEXTLINE(readability-identifier-naming)
 namespace uWS {
     struct HttpRequest;
 }
@@ -25,31 +27,66 @@ public:
     static std::unordered_map<std::string, std::string> collectHeaders(ReqType* req) {
         std::unordered_map<std::string, std::string> out;
         for (auto it = req->begin(); it != req->end(); ++it) {
-            const auto kv = *it;
-            out[std::string(kv.first)] = std::string(kv.second);
+            const auto key_value = *it;
+            out[std::string(key_value.first)] = std::string(key_value.second);
         }
         return out;
     }
 
     // Parse a uWebSockets request into our RequestData structure
     template<typename ReqType>
-    static RequestData parseRequest(ReqType* req, const char* bodyData) {
+    static RequestData parseRequest(ReqType* req, std::string_view body) {
         RequestData request;
         
         // Extract basic request information
         request.method = std::string(req->getMethod());
         request.path = std::string(req->getUrl());
-        
-        // Extract query string and path
-        request.query = extractQueryString(request.path);
-        request.path = extractPath(request.path);
+        request.query = std::string(req->getQuery());
         
         request.headers = collectHeaders(req);
         
-        // Set body from the provided data
-        request.body = bodyData ? std::string(bodyData) : "";
+        // Set body from the provided data (explicit length; safe for binary / embedded NULs)
+        request.body.assign(body.data(), body.size());
         
         return request;
+    }
+
+    /// Extract route parameters using uWebSockets' already-matched parameters.
+    /// Parameter names are derived from the route pattern (segments beginning with ':') and values
+    /// are read from `req->getParameter(i)` in left-to-right order.
+    template<typename ReqType>
+    static std::unordered_map<std::string, std::string> collectRouteParameters(
+        ReqType* req,
+        const std::string& routePattern
+    ) {
+        std::unordered_map<std::string, std::string> out;
+        size_t param_index = 0;
+
+        size_t route_idx = 0;
+        while (route_idx < routePattern.size()) {
+            // Skip leading slashes
+            while (route_idx < routePattern.size() && routePattern[route_idx] == '/') {
+                ++route_idx;
+            }
+            if (route_idx >= routePattern.size()) {
+                break;
+            }
+
+            const size_t seg_start = route_idx;
+            while (route_idx < routePattern.size() && routePattern[route_idx] != '/') {
+                ++route_idx;
+            }
+            const size_t seg_end = route_idx;
+
+            if (seg_end > seg_start && routePattern[seg_start] == ':') {
+                const std::string name = routePattern.substr(seg_start + 1, seg_end - (seg_start + 1));
+                const std::string_view value_view = req->getParameter(static_cast<unsigned int>(param_index));
+                out[name] = std::string(value_view);
+                ++param_index;
+            }
+        }
+
+        return out;
     }
     
     // Parse query string into key-value pairs
@@ -60,14 +97,4 @@ public:
 
     /// Map a MATLAB struct field name from `Response.Headers` to an HTTP header name (underscores → hyphens).
     static std::string matlabFieldNameToHttpHeaderName(const std::string& field);
-    
-    // Extract path from URL (remove query string)
-    static std::string extractPath(const std::string& url);
-    
-    // Extract query string from URL
-    static std::string extractQueryString(const std::string& url);
-    
-private:
-    // Helper to split string by delimiter
-    static std::vector<std::string> split(const std::string& str, char delimiter);
 };

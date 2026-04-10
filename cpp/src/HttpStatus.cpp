@@ -1,7 +1,7 @@
 #include "HttpStatus.hpp"
 
-std::string httpStatusLine(int statusCode) {
-    switch (statusCode) {
+std::string httpStatusLine(int status_code) {
+    switch (status_code) {
         case 200: return "200 OK";
         case 201: return "201 Created";
         case 204: return "204 No Content";
@@ -19,6 +19,6 @@ std::string httpStatusLine(int statusCode) {
         case 500: return "500 Internal Server Error";
         case 501: return "501 Not Implemented";
         case 503: return "503 Service Unavailable";
-        default: return std::to_string(statusCode) + " ";
+        default: return std::to_string(status_code) + " ";
     }
 }

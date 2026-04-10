@@ -4,6 +4,48 @@
 #include <iostream>
 #include <vector>
 
+namespace {
+
+int fromHex(unsigned char chr) {
+    if (chr >= '0' && chr <= '9') {
+        return chr - '0';
+    }
+    if (chr >= 'a' && chr <= 'f') {
+        return 10 + (chr - 'a');
+    }
+    if (chr >= 'A' && chr <= 'F') {
+        return 10 + (chr - 'A');
+    }
+    return -1;
+}
+
+std::string percentDecode(std::string_view input) {
+    std::string out;
+    out.reserve(input.size());
+
+    for (size_t i = 0; i < input.size(); ++i) {
+        auto chr = static_cast<unsigned char>(input[i]);
+        if (chr == '+') {
+            out.push_back(' ');
+            continue;
+        }
+        if (chr == '%' && i + 2 < input.size()) {
+            int high_nibble = fromHex(static_cast<unsigned char>(input[i + 1]));
+            int low_nibble = fromHex(static_cast<unsigned char>(input[i + 2]));
+            if (high_nibble >= 0 && low_nibble >= 0) {
+                out.push_back(static_cast<char>((high_nibble << 4) | low_nibble));
+                i += 2;
+                continue;
+            }
+        }
+        out.push_back(static_cast<char>(chr));
+    }
+
+    return out;
+}
+
+} // namespace
+
 
 std::unordered_map<std::string, std::string> RequestParser::parseQueryString(const std::string& query) {
     std::unordered_map<std::string, std::string> params;
@@ -18,9 +60,9 @@ std::unordered_map<std::string, std::string> RequestParser::parseQueryString(con
     while (std::getline(stream, pair, '&')) {
         size_t pos = pair.find('=');
         if (pos != std::string::npos) {
-            std::string key = pair.substr(0, pos);
-            std::string value = pair.substr(pos + 1);
-            params[key] = value;
+            const std::string key_raw = pair.substr(0, pos);
+            const std::string value_raw = pair.substr(pos + 1);
+            params[percentDecode(key_raw)] = percentDecode(value_raw);
         }
     }
     
@@ -30,11 +72,11 @@ std::unordered_map<std::string, std::string> RequestParser::parseQueryString(con
 std::string RequestParser::matlabFieldNameToHttpHeaderName(const std::string& field) {
     std::string out;
     out.reserve(field.size());
-    for (unsigned char c : field) {
-        if (c == '_') {
+    for (unsigned char chr : field) {
+        if (chr == '_') {
             out += '-';
         } else {
-            out += static_cast<char>(c);
+            out += static_cast<char>(chr);
         }
     }
     return out;
@@ -46,47 +88,15 @@ std::string RequestParser::queryKeyToMatlabFieldName(const std::string& key) {
     }
     std::string out;
     out.reserve(key.size());
-    for (unsigned char c : key) {
-        if (std::isalnum(c)) {
-            out += static_cast<char>(c);
-        } else if (c == '_') {
-            out += '_';
+    for (unsigned char chr : key) {
+        if (std::isalnum(chr) != 0) {
+            out += static_cast<char>(chr);
         } else {
             out += '_';
         }
     }
-    if (!std::isalpha(static_cast<unsigned char>(out[0]))) {
+    if (std::isalpha(static_cast<unsigned char>(out[0])) == 0) {
         out.insert(out.begin(), 'x');
     }
     return out;
-}
-
-std::string RequestParser::extractPath(const std::string& url) {
-    size_t queryPos = url.find('?');
-    if (queryPos != std::string::npos) {
-        return url.substr(0, queryPos);
-    }
-    return url;
-}
-
-std::string RequestParser::extractQueryString(const std::string& url) {
-    size_t queryPos = url.find('?');
-    if (queryPos != std::string::npos) {
-        return url.substr(queryPos + 1);
-    }
-    return "";
-}
-
-std::vector<std::string> RequestParser::split(const std::string& str, char delimiter) {
-    std::vector<std::string> tokens;
-    std::stringstream ss(str);
-    std::string token;
-    
-    while (std::getline(ss, token, delimiter)) {
-        if (!token.empty()) {
-            tokens.push_back(token);
-        }
-    }
-    
-    return tokens;
 }

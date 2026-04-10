@@ -10,11 +10,13 @@
 class MockRequest {
 public:
     MockRequest(const std::string& method, const std::string& url,
+                const std::string& query = "",
                 std::vector<std::pair<std::string, std::string>> headers = {})
-        : method_(method), url_(std::move(url)), headers_(std::move(headers)) {}
+        : method_(method), url_(std::move(url)), query_(std::move(query)), headers_(std::move(headers)) {}
 
     const char* getMethod() const { return method_.c_str(); }
     const char* getUrl() const { return url_.c_str(); }
+    const char* getQuery() const { return query_.c_str(); }
 
     struct Iterator {
         const std::vector<std::pair<std::string, std::string>>* vec = nullptr;
@@ -39,21 +41,9 @@ public:
 private:
     std::string method_;
     std::string url_;
+    std::string query_;
     std::vector<std::pair<std::string, std::string>> headers_;
 };
-
-TEST(RequestParserTest, ExtractPath) {
-    EXPECT_EQ(RequestParser::extractPath("/api/users"), "/api/users");
-    EXPECT_EQ(RequestParser::extractPath("/api/users?name=john"), "/api/users");
-    EXPECT_EQ(RequestParser::extractPath("/api/users?name=john&age=25"), "/api/users");
-    EXPECT_EQ(RequestParser::extractPath(""), "");
-}
-
-TEST(RequestParserTest, ExtractQueryString) {
-    EXPECT_EQ(RequestParser::extractQueryString("/api/users"), "");
-    EXPECT_EQ(RequestParser::extractQueryString("/api/users?name=john"), "name=john");
-    EXPECT_EQ(RequestParser::extractQueryString("/api/users?name=john&age=25"), "name=john&age=25");
-}
 
 TEST(RequestParserTest, ParseQueryString) {
     auto params = RequestParser::parseQueryString("name=john&age=25&city=new%20york");
@@ -61,7 +51,7 @@ TEST(RequestParserTest, ParseQueryString) {
     EXPECT_EQ(params.size(), 3);
     EXPECT_EQ(params["name"], "john");
     EXPECT_EQ(params["age"], "25");
-    EXPECT_EQ(params["city"], "new%20york");
+    EXPECT_EQ(params["city"], "new york");
 }
 
 TEST(RequestParserTest, ParseQueryStringEmpty) {
@@ -77,7 +67,7 @@ TEST(RequestParserTest, ParseQueryStringNoEquals) {
 }
 
 TEST(RequestParserTest, ParseRequest) {
-    MockRequest req("GET", "/api/users?name=john&age=25");
+    MockRequest req("GET", "/api/users", "name=john&age=25");
     
     RequestData data = RequestParser::parseRequest(&req, "request body");
     
@@ -90,7 +80,7 @@ TEST(RequestParserTest, ParseRequest) {
 TEST(RequestParserTest, ParseRequestNoBody) {
     MockRequest req("POST", "/api/users");
     
-    RequestData data = RequestParser::parseRequest(&req, nullptr);
+    RequestData data = RequestParser::parseRequest(&req, "");
     
     EXPECT_EQ(data.method, "POST");
     EXPECT_EQ(data.path, "/api/users");
@@ -100,7 +90,7 @@ TEST(RequestParserTest, ParseRequestNoBody) {
 }
 
 TEST(RequestParserTest, ParseRequestCollectsHeaders) {
-    MockRequest req("GET", "/x", {{"user-agent", "gtest"}, {"accept", "text/plain"}});
+    MockRequest req("GET", "/x", "", {{"user-agent", "gtest"}, {"accept", "text/plain"}});
 
     RequestData data = RequestParser::parseRequest(&req, "");
 
