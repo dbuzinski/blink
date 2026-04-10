@@ -27,30 +27,11 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Installation: installation.md
-  - Quick start: quick-start.md
-  - User guide:
-      - Application: application.md
-      - Routing: routing.md
-      - Request: request.md
-      - Response: response.md
-      - Static files: static-files.md
-      - Patterns: patterns.md
-      - API reference: api-reference.md
-      - Examples: examples.md
-      - Troubleshooting: troubleshooting.md
-  - Features & specification:
-      - Features: features.md
-      - Specification:
-          - Overview: specification/index.md
-          - HTTP & routing: specification/http-routing.md
-          - Request & response: specification/request-response.md
-          - Body & uploads: specification/body-uploads.md
-          - Middleware & errors: specification/middleware-errors.md
-          - Config & lifecycle: specification/config-lifecycle.md
-          - Security: specification/security.md
-          - Real-time & HTTPS: specification/realtime-https.md
-          - Execution model: specification/execution-model.md
-      - Stability & versioning: stability.md
+  - Installation guide: installation-guide.md
+  - Getting Started: getting-started.md
+  - Tutorial: tutorial.md
+  - Configuration: configuration.md
+  - Security: security.md
+  - Common Patterns: common-patterns.md
 
 strict: true
