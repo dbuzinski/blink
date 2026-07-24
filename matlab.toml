@@ -2,12 +2,28 @@ name = "Blink"
 
 [folders]
 path = [
-    "toolbox",
+    "src/matlab",
 ]
 test = [
     "tests",
 ]
 
-[dependencies]
-matstache = {path = "include/matstache"}
+[[package]]
+configuration-name = "Blink"
+unique-id = "62abc456-d25c-4366-8115-eeef27ca054f"
+output-file-name = "Blink.mltbx"
+output-folder = "release"
+name = "Blink"
+supported-platforms = [
+    "windows",
+    "linux",
+    "macos",
+]
+display-name = "Blink"
+version = "1.0.0"
+id = "45b7fa33-7418-4ee1-a8f1-23805d65ac15"
+use-license-bsd = false
+package-root = "src/matlab"
+provider.name = "David Buzinski"
+provider.email = "davidbuzinski@gmail.com"
 

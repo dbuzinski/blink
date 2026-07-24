@@ -1,5 +1,5 @@
 # Put Bazel’s workspace symlinks in dist/ output folder
-build --symlink_prefix=../dist/bazel-
+build --symlink_prefix=../../dist/bazel-
 
 # Basic Bazel configuration
 build --cxxopt=-std=c++20
