@@ -1,0 +1,13 @@
+name = "Blink"
+
+[folders]
+path = [
+    "toolbox",
+]
+test = [
+    "tests",
+]
+
+[dependencies]
+matstache = {path = "include/matstache"}
+

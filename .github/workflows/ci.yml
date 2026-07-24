@@ -26,6 +26,7 @@ jobs:
       - name: Set up MATLAB
         uses: matlab-actions/setup-matlab@v3
         with:
+          release: latest-including-prerelease
           cache: true
       - name: Run build
         uses: matlab-actions/run-build@v3
