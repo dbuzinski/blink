@@ -1,1 +1,0 @@
-run("./dist/index.m");
