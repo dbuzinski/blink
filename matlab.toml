@@ -8,6 +8,9 @@ test = [
     "tests",
 ]
 
+[dependencies]
+Matstache = {version = "*", id = "f396b9ca-fd14-46e2-878b-e053ffb5cca2"}
+
 [[package]]
 configuration-name = "Blink"
 unique-id = "62abc456-d25c-4366-8115-eeef27ca054f"
@@ -26,4 +29,3 @@ use-license-bsd = false
 package-root = "src/matlab"
 provider.name = "David Buzinski"
 provider.email = "davidbuzinski@gmail.com"
-
