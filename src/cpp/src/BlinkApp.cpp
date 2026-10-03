@@ -208,35 +208,43 @@ void BlinkApp::listen(int port) {
 
 template<typename ResType, typename ReqType>
 void BlinkApp::handleRequest(ResType* res, ReqType* req, const Route& route) {
+    std::cerr << "[BlinkApp] handleRequest: " << route.path << std::endl;
     auto is_aborted = std::make_shared<bool>(false);
     auto body_buffer = std::make_shared<std::string>();
     
     // Handle request body using onData callback
-    res->onData([this, res, req, route, is_aborted, body_buffer](std::string_view chunk, bool isLast) mutable {
-        if (*is_aborted) {
-            return;
-        }
+    if (std::string(req->getMethod()) == "GET") {
+        std::cerr << "[BlinkApp] GET request, calling processRequest" << std::endl;
+        processRequest(res, req, route, "", is_aborted);
+    } else {
+        std::cerr << "[BlinkApp] Non-GET request, setting up onData" << std::endl;
+        res->onData([this, res, req, route, is_aborted, body_buffer](std::string_view chunk, bool isLast) mutable {
+            if (*is_aborted) {
+                return;
+            }
 
-        if (body_buffer->size() + chunk.size() > maxRequestBodyBytes_) {
+            if (body_buffer->size() + chunk.size() > maxRequestBodyBytes_) {
+                *is_aborted = true;
+                body_buffer->clear();
+                res->writeStatus(httpStatusLine(413));
+                res->writeHeader("Content-Type", "text/plain; charset=utf-8");
+                res->end("Payload Too Large");
+                return;
+            }
+
+            body_buffer->append(chunk);
+
+            if (isLast) {
+                std::cerr << "[BlinkApp] onData: isLast=true, calling processRequest" << std::endl;
+                processRequest(res, req, route, std::string_view(*body_buffer), is_aborted);
+            }
+        });
+
+        res->onAborted([is_aborted, body_buffer]() {
             *is_aborted = true;
             body_buffer->clear();
-            res->writeStatus(httpStatusLine(413));
-            res->writeHeader("Content-Type", "text/plain; charset=utf-8");
-            res->end("Payload Too Large");
-            return;
-        }
-
-        body_buffer->append(chunk);
-
-        if (isLast) {
-            processRequest(res, req, route, std::string_view(*body_buffer), is_aborted);
-        }
-    });
-    
-    res->onAborted([is_aborted, body_buffer]() {
-        *is_aborted = true;
-        body_buffer->clear();
-    });
+        });
+    }
 }
 
 
