@@ -1,3 +1,2 @@
-addpath("../../include/matstache/toolbox");
-addpath("../../src");
+addpath("../../src/matlab");
 run("./dist/index.m");
