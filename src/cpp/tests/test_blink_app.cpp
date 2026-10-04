@@ -6,36 +6,36 @@
 // Simple mock MATLAB caller for testing
 class MockMATLABCaller : public MATLABCaller {
 public:
-    ResponseData callHandler(const std::string& handlerName, const RequestData& request) override {
-        ResponseData response;
-        response.body = "Mock response from " + handlerName;
-        response.status_code = 200;
-        response.content_type = "text/plain";
-        return response;
-    }
-    
+  ResponseData callHandler(const std::string &handlerName,
+                           const RequestData &request) override {
+    ResponseData response;
+    response.body = "Mock response from " + handlerName;
+    response.status_code = 200;
+    response.content_type = "text/plain";
+    return response;
+  }
+
 private:
-    std::set<std::string> registeredHandlers;
+  std::set<std::string> registeredHandlers;
 };
 
 TEST(BlinkAppTest, BasicCreation) {
-    // Test that BlinkApp can be created successfully
-    auto mockCaller = std::make_shared<MockMATLABCaller>();
-    BlinkApp app(mockCaller);
-    
-    // If we get here without throwing, the test passes
-    SUCCEED();
+  // Test that BlinkApp can be created successfully
+  auto mockCaller = std::make_shared<MockMATLABCaller>();
+  BlinkApp app(mockCaller);
+
+  // If we get here without throwing, the test passes
+  SUCCEED();
 }
 
 TEST(BlinkAppTest, BasicRouteHandling) {
-    // Test basic route addition
-    auto mockCaller = std::make_shared<MockMATLABCaller>();
-    BlinkApp app(mockCaller);
-    
-    std::vector<Route> routes = {
-        {.http_method = "GET", .path = "/hello", .handler_name = "helloHandler"}
-    };
-    
-    // Should not throw
-    EXPECT_NO_THROW(app.addRoutes(routes));
+  // Test basic route addition
+  auto mockCaller = std::make_shared<MockMATLABCaller>();
+  BlinkApp app(mockCaller);
+
+  std::vector<Route> routes = {
+      {.http_method = "GET", .path = "/hello", .handler_name = "helloHandler"}};
+
+  // Should not throw
+  EXPECT_NO_THROW(app.addRoutes(routes));
 }
